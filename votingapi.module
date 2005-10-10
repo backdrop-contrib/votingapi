@@ -1,0 +1,85 @@
+<?php
+/* $Id$ */
+
+/**
+* A generalized voting API based on Benjamin Shell's voting.module.
+* It uses the same table -- 'voting' -- as Shell's module but exposes
+* the voting functions rather than assuming Flash will be used to
+* pass the necessary variables.
+**/
+
+/**
+ * Implementation of hook_help().
+ */
+function votingapi_help($section) {
+  switch ($section) {
+    case 'admin/modules#description':
+      return t("Provides a shared voting API for other modules.");
+    case 'admin/settings/voting':
+      return t("Provides a shared API for other modules to store and display community votes and ratings.");
+  }
+}
+
+/**
+ * Return a vote object (containing the user's vote, average vote, and total number of votes)
+ */
+function votingapi_get_vote($content_type, $content_id) {
+  global $user;
+  
+  // my vote
+  if ($_COOKIE["vote_{$content_type}_{$content_id}"]) { // get user's vote from a cookie on their computer
+    $votingapi_id = $_COOKIE["vote_{$content_type}_{$content_id}"];
+    $result = db_query("SELECT * FROM {votes} WHERE voting_id=%d", $voting_id);
+    $vote = db_fetch_object($result);
+  } elseif ($user->uid) { // get the user's vote by using their user_id
+    $result = db_query("SELECT * FROM {votes} WHERE content_type='%s' AND content_id=%d AND uid=%d", $content_type, $content_id, $user->uid);
+    $vote = db_fetch_object($result);
+  } else { // get the user's vote from their IP address (only within one hour, or whatever the votingapi_ip_timeout variable is set to)
+    $result = db_query("SELECT * FROM {votes} WHERE content_type='%s' AND content_id=%d AND hostname='%s' AND timestamp > %d", $content_type, $content_id, $_SERVER['REMOTE_ADDR'], time() - variable_get("votingapi_ip_timeout", 60 * 60));
+    $vote = db_fetch_object($result);
+  }
+  
+  // average vote
+  $result = db_query("SELECT SUM(vote)/COUNT(vote) AS avg_vote, COUNT(vote) AS total_votes FROM {votes} WHERE content_type='%s' AND content_id=%d", $content_type, $content_id);
+  $result = db_fetch_object($result);
+  $vote->avg_vote = $result ? $result->avg_vote : 0;
+  $vote->avg_vote = round($vote->avg_vote / 0.5) * 0.5; // rounds to nearest half
+  $vote->avg_vote = number_format($vote->avg_vote, 1); // fixes to 1 decimal place
+
+  // number of votes
+  $vote->total_votes = $result ? number_format($result->total_votes, 0) : 0;
+	
+  return $vote;
+}
+
+/**
+ * Return a vote object (containing the user's vote, average vote, and total number of votes)
+ */
+function votingapi_set_vote($content_type, $content_id, $new_vote) {
+  global $user;
+  
+  $vote = votingapi_get_vote($content_type, $content_id); // get average vote, number of votes, and user's current vote (if any)
+	
+  if ($new_vote) { // if a new vote is sent...
+    if ($vote->voting_id) { // ...and the user has already voted
+      db_query("UPDATE {votes} SET vote=%d, timestamp=%d, hostname='%s' WHERE voting_id=%d", $new_vote, time(), $_SERVER['REMOTE_ADDR'], $vote->voting_id);
+      setcookie ("vote_{$content_type}_{$content_id}", $prev_vote->voting_id, time()+60*60*24*30); // expire in 30 days
+    } else { // ...and the user has NOT voted yet
+      $result = db_query("SELECT MAX(voting_id) FROM {votes}");
+      $voting_id = $result ? db_result($result, 0) : 0;
+      $voting_id++;
+      db_query("INSERT INTO {votes} (voting_id, content_type, content_id, vote, uid, timestamp, hostname) VALUES (%d, '%s', %d, %d, %d, %d, '%s')", 
+        $voting_id, $content_type, $content_id, $new_vote, $user->uid, time(), $_SERVER['REMOTE_ADDR']);
+      setcookie ("vote_{$content_type}_{$content_id}", $voting_id, time()+60*60*24*30); // expire in 30 days
+    }
+    $vote = votingapi_get_vote($content_type, $content_id); // get new updated average vote and number of votes
+  }
+	
+  // return the current vote info to flash
+  $vote->vote = ($vote->vote) ? $vote->vote : 0;
+  $vote->avg_vote = ($vote->avg_vote) ? $vote->avg_vote : 0;
+  $vote->total_votes = ($vote->total_votes) ? $vote->total_votes : 0;
+  
+  return $vote;
+}
+?>
