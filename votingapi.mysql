@@ -3,10 +3,11 @@
 #
 
 CREATE TABLE votes (
-  voting_id int(10) unsigned NOT NULL auto_increment,
+  voting_id int(10) unsigned NOT NULL,
   content_type varchar(20) default NULL,
   content_id int(10) unsigned default NULL,
-  vote tinyint(1) unsigned default NULL,
+  vote int(10) unsigned default NULL,
+  tag varchar(128) default '0',
   uid int(10) unsigned default '0',
   timestamp int(11) default NULL,
   hostname varchar(128) default '0',

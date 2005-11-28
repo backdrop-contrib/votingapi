@@ -2,11 +2,8 @@
 /* $Id$ */
 
 /**
-* A generalized voting API based on Benjamin Shell's voting.module.
-* It uses the same table -- 'voting' -- as Shell's module but exposes
-* the voting functions rather than assuming Flash will be used to
-* pass the necessary variables.
-**/
+ * A generalized voting API for Drupal. See README.txt for details.
+ */
 
 /**
  * Implementation of hook_help().
@@ -21,65 +18,137 @@ function votingapi_help($section) {
 }
 
 /**
- * Return a vote object (containing the user's vote, average vote, and total number of votes)
+ * Add a new vote for the current user. If they've already voted, this casts an additional vote.
  */
-function votingapi_get_vote($content_type, $content_id) {
-  global $user;
-  
-  // my vote
-  if ($_COOKIE["vote_{$content_type}_{$content_id}"]) { // get user's vote from a cookie on their computer
-    $votingapi_id = $_COOKIE["vote_{$content_type}_{$content_id}"];
-    $result = db_query("SELECT * FROM {votes} WHERE voting_id=%d", $voting_id);
-    $vote = db_fetch_object($result);
-  } elseif ($user->uid) { // get the user's vote by using their user_id
-    $result = db_query("SELECT * FROM {votes} WHERE content_type='%s' AND content_id=%d AND uid=%d", $content_type, $content_id, $user->uid);
-    $vote = db_fetch_object($result);
-  } else { // get the user's vote from their IP address (only within one hour, or whatever the votingapi_ip_timeout variable is set to)
-    $result = db_query("SELECT * FROM {votes} WHERE content_type='%s' AND content_id=%d AND hostname='%s' AND timestamp > %d", $content_type, $content_id, $_SERVER['REMOTE_ADDR'], time() - variable_get("votingapi_ip_timeout", 60 * 60));
-    $vote = db_fetch_object($result);
+function votingapi_add_vote($content_type, $content_id, $tag, $vote, $uid = NULL) {
+  if ($uid == NULL) {
+    global $user;
+    $uid = $user->uid;
   }
-  
-  // average vote
-  $result = db_query("SELECT SUM(vote)/COUNT(vote) AS avg_vote, COUNT(vote) AS total_votes FROM {votes} WHERE content_type='%s' AND content_id=%d", $content_type, $content_id);
-  $result = db_fetch_object($result);
-  $vote->avg_vote = $result ? $result->avg_vote : 0;
-  $vote->avg_vote = round($vote->avg_vote / 0.5) * 0.5; // rounds to nearest half
-  $vote->avg_vote = number_format($vote->avg_vote, 1); // fixes to 1 decimal place
 
-  // number of votes
-  $vote->total_votes = $result ? number_format($result->total_votes, 0) : 0;
-	
-  return $vote;
+  $vobj->voting_id = db_next_id('votes');
+  $vobj->content_type = $content_type;
+  $vobj->content_id = $content_id;
+  $vobj->vote = $vote;
+  $vobj->tag = $tag;
+  $vobj->uid = $uid;
+  $vobj->timestamp = time();
+  $vobj->hostname = $_SERVER['REMOTE_ADDR'];
+
+  // Give other modules a chance to alter the vote object before it's inserted,
+  // or update their own auxiliary tables with additional information.
+  votingapi_invoke_votingapi($vobj, 'insert');
+
+  db_query("INSERT INTO {votes} (voting_id, content_type, content_id, vote, tag, uid, timestamp, hostname) VALUES (%d, '%s', %d, %d, '%s', %d, %d, '%s')", 
+    $vobj->voting_id, $vobj->content_type, $vobj->content_id, $vobj->vote, $vobj->tag, $vobj->uid, $vobj->timestamp, $vobj->hostname);
+  return $vobj;
+}
+
+
+/**
+ * Sets the vote for the current user. If they've already voted, this changes it.
+ * In most cases, this function should be used by external modules.
+ */
+function votingapi_set_vote($content_type, $content_id, $tag, $vote, $uid = NULL) {
+  if ($uid == NULL) {
+    global $user;
+    $uid = $user->uid;
+  }
+
+  $result = db_query("SELECT * FROM {votes} WHERE content_type='%s' AND content_id=%d AND tag = '%s' AND uid=%d", $content_type, $content_id, $tag, $uid);
+  while ($vobj = db_fetch_object($result)) {
+    $vobj = votingapi_change_vote($vobj, $vote);
+    $exists = TRUE;
+  }
+  if (!$exists) {
+    $vobj = votingapi_add_vote($content_type, $content_id, $tag, $uid, $vote);
+  }
+  return $vobj;
 }
 
 /**
- * Return a vote object (containing the user's vote, average vote, and total number of votes)
+ * Alters a user's existing vote, if one exists.
  */
-function votingapi_set_vote($content_type, $content_id, $new_vote) {
-  global $user;
-  
-  $vote = votingapi_get_vote($content_type, $content_id); // get average vote, number of votes, and user's current vote (if any)
-	
-  if ($new_vote) { // if a new vote is sent...
-    if ($vote->voting_id) { // ...and the user has already voted
-      db_query("UPDATE {votes} SET vote=%d, timestamp=%d, hostname='%s' WHERE voting_id=%d", $new_vote, time(), $_SERVER['REMOTE_ADDR'], $vote->voting_id);
-      setcookie ("vote_{$content_type}_{$content_id}", $prev_vote->voting_id, time()+60*60*24*30); // expire in 30 days
-    } else { // ...and the user has NOT voted yet
-      $result = db_query("SELECT MAX(voting_id) FROM {votes}");
-      $voting_id = $result ? db_result($result, 0) : 0;
-      $voting_id++;
-      db_query("INSERT INTO {votes} (voting_id, content_type, content_id, vote, uid, timestamp, hostname) VALUES (%d, '%s', %d, %d, %d, %d, '%s')", 
-        $voting_id, $content_type, $content_id, $new_vote, $user->uid, time(), $_SERVER['REMOTE_ADDR']);
-      setcookie ("vote_{$content_type}_{$content_id}", $voting_id, time()+60*60*24*30); // expire in 30 days
-    }
-    $vote = votingapi_get_vote($content_type, $content_id); // get new updated average vote and number of votes
-  }
-	
-  // return the current vote info to flash
-  $vote->vote = ($vote->vote) ? $vote->vote : 0;
-  $vote->avg_vote = ($vote->avg_vote) ? $vote->avg_vote : 0;
-  $vote->total_votes = ($vote->total_votes) ? $vote->total_votes : 0;
-  
-  return $vote;
+function votingapi_change_vote($vobj, $vote) {
+  // Give other modules a chance to respond to the update.
+  // Both the existing vote object and the new vote value are handed off to interested
+  // modules.
+  votingapi_invoke_votingapi($vobj, 'update', $vote);
+  db_query("UPDATE {votes} SET vote = %d WHERE voting_id = %d", $vote, $vobj->voting_id);
+  return $vobj;
 }
-?>
+
+/**
+ * Deletes an existing vote.
+ */
+function votingapi_delete_vote($vobj) {
+  // Give other modules a chance to respond to the delete.
+  votingapi_invoke_votingapi($vobj, 'delete', $vote);  
+  db_query("DELETE FROM {votes} WHERE voting_id = %d", $voting_id);
+}
+
+/**
+ * Get a specific user's votes for a piece of content.
+ */
+function votingapi_get_votes($content_type, $content_id, $tag_list = NULL, $uid_list = NULL) {
+  $votes->tags = array();
+  $votes->raw_votes = array();
+
+  if ($tag_list) {
+    $filter_string .= " AND v.tag IN ('" . implode("','",$tag_list) . "')";
+  }
+  if ($uid_list) {
+    $filter_string .= " AND v.uid IN (" . implode(',',$uid_list) . ')';
+  }
+
+  $result = db_query("SELECT * FROM {votes} v WHERE content_type='%s' $filter_string", $content_type, $content_id);
+  while ($vobj = db_fetch_object($result)) {
+    // Give other modules a chance to alter the vote object, add additional data, etc..
+    votingapi_invoke_votingapi($vobj, 'load');
+    $votes->tags[$vote_data->tag][$vobj->$voting_id] = $vobj;
+    $votes->raw_votes[$vobj->$voting_id] = $vobj;
+  }
+
+  // Give other modules a chance to do custom totaling/summing/etc of the votes.
+  votingapi_invoke_votingapi($votes, 'calculate');
+  return $votes;
+}
+
+function votingapi_get_vote($voting_id) {  
+  $result = db_query('SELECT * FROM {votes} v WHERE voting_id=%d', $voting_id);
+  $vobj = db_fetch_object($result);
+  
+  // Give other modules a chance to alter the vote object, add additional data, etc..
+  votingapi_invoke_votingapi($vobj, 'load');
+  return $vobj;
+}
+
+
+
+/**
+ * Invoke a hook_votingapi() operation in all modules.
+ *
+ * @param &$vote
+ *   A vote object.
+ * @param $op
+ *   A string containing the name of the votingapi operation.
+ *   Currently, insert/update/delete, load, and calculate are supported.
+ * @param $a3
+ *   An additional argument to pass on to the hook, after the $vote and $op arguments.
+ * @return
+ *   The returned value of the invoked hooks.
+ */
+function votingapi_invoke_votingapi(&$vote, $op, $a3 = NULL) {
+  $return = array();
+  foreach (module_implements('votingapi') as $name) {
+    $function = $name .'_votingapi';
+    $result = $function($vote, $op, $a3);
+    if (is_array($result)) {
+      $return = array_merge($return, $result);
+    }
+    else if (isset($result)) {
+      $return[] = $result;
+    }
+  }
+  return $return;
+}
