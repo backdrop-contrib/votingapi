@@ -61,7 +61,7 @@ function votingapi_set_vote($content_type, $content_id, $tag, $vote, $uid = NULL
     $exists = TRUE;
   }
   if (!$exists) {
-    $vobj = votingapi_add_vote($content_type, $content_id, $tag, $uid, $vote);
+    $vobj = votingapi_add_vote($content_type, $content_id, $tag, $vote, $uid);
   }
   return $vobj;
 }
@@ -101,7 +101,7 @@ function votingapi_get_votes($content_type, $content_id, $tag_list = NULL, $uid_
     $filter_string .= " AND v.uid IN (" . implode(',',$uid_list) . ')';
   }
 
-  $result = db_query("SELECT * FROM {votes} v WHERE content_type='%s' $filter_string", $content_type, $content_id);
+  $result = db_query("SELECT * FROM {votes} v WHERE content_type='%s' AND content_id='%s' $filter_string", $content_type, $content_id);
   while ($vobj = db_fetch_object($result)) {
     // Give other modules a chance to alter the vote object, add additional data, etc..
     votingapi_invoke_votingapi($vobj, 'load');
