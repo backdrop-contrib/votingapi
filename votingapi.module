@@ -105,8 +105,8 @@ function votingapi_get_votes($content_type, $content_id, $tag_list = NULL, $uid_
   while ($vobj = db_fetch_object($result)) {
     // Give other modules a chance to alter the vote object, add additional data, etc..
     votingapi_invoke_votingapi($vobj, 'load');
-    $votes->tags[$vote_data->tag][$vobj->$voting_id] = $vobj;
-    $votes->raw_votes[$vobj->$voting_id] = $vobj;
+    $votes->tags[$vote_data->tag][$vobj->voting_id] = $vobj;
+    $votes->raw_votes[$vobj->voting_id] = $vobj;
   }
 
   // Give other modules a chance to do custom totaling/summing/etc of the votes.
