@@ -33,3 +33,8 @@ When the voting api system calculates aggregate results, it's smart enough to se
 Slicing And Dicing
 ==================
 Whenever a vote is saved, the votingapi_cache table is updated with aggregate data for the content that's being rated. That table is where you'll find things like averages, etc. If you want to create ranked or filtered queries (top-rated nodes, ordered by average vote, for example) it's the table to use.
+
+
+WARNING
+=======
+If you're a module developer who's been developing based on a version of votingapi earlier than 1.5, take heed! Versions 1.5 and later user a different API and a different table structure. There's a lot less work for you to do, but it will require some changes. Older versions are still obtainable in CVS if you need them for compatability reasons.
