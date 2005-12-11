@@ -5,6 +5,15 @@
  * A generalized voting API for Drupal. See README.txt for details.
  */
 
+// Constants used throughout the module
+
+define('VOTINGAPI_VALUE_TYPE_PERCENT', 1);
+define('VOTINGAPI_VALUE_TYPE_TOKEN', 2);
+define('VOTINGAPI_VALUE_TYPE_KEY', 3);
+
+define('VOTINGAPI_VALUE_DEFAULT_TAG', 'vote');
+define('VOTINGAPI_VALUE_DEFAULT_TYPE', 1);
+
 /**
  * Implementation of hook_help().
  */
@@ -18,112 +27,323 @@ function votingapi_help($section) {
 }
 
 /**
- * Add a new vote for the current user. If they've already voted, this casts an additional vote.
+ * Cast a vote on a particular piece of content. If a vote already exists, its value is changed.
+ * In most cases, this is the function that should be used by external modules.
+ *
+ * @param $content_type
+ *   A string identifying the type of content being rated. Node, comment, aggregator item, etc.
+ * @param $content_id
+ *   The key ID of the content being rated.
+ * @param $vote
+ *   This is slightly ugly. $vote can be one of three possible data types:
+ *   1: $vote is a number, and is inserted as a vote with default value_type and tag.
+ *   2: $vote is an object, with $vote->value, $vote->value_type, and $vote->tag properties.
+ *   3: $vote is an array of $vote objects as used in #2, and is iterated through.
+ *   See docs for _votingapi_add_vote() for details on vote_types and tags.
+ * @param $uid
+ *   The uid of the user casting the vote. If none is specified, the currently logged in user's uid will be inserted.
+ * @return
+ *   An array of the votingapi_cache records affected by the vote.
  */
-function votingapi_add_vote($content_type, $content_id, $tag, $vote, $uid = NULL) {
+function votingapi_set_vote($content_type, $content_id, $vote, $uid = NULL, $recursion = FALSE) {
+  if ($uid == NULL) {
+    global $user;
+    $uid = $user->uid;
+  }
+  
+  if (is_array($vote)) {
+    foreach($vote as $vobj) {
+      $user_votes[] = votingapi_set_vote($content_type, $content_id, $vobj, $uid, TRUE);
+    }
+  }
+  else if (is_integer($vote) || is_float($vote)) {
+    $vobj->value = $vote;
+    $vobj->value_type = VOTINGAPI_VALUE_DEFAULT_TYPE;
+    $vobj->tag = VOTINGAPI_VALUE_DEFAULT_TAG;
+    votingapi_set_vote($content_type, $content_id, $vobj, $uid, TRUE);
+  }
+  else if (is_object($vote)) {
+    $result = db_query("SELECT * FROM {votingapi_vote} WHERE content_type='%s' AND content_id=%d AND tag='%s' AND value_type=%d AND uid=%d", $content_type, $content_id, $vote->tag, $vote->value_type, $uid);
+    while ($vobj = db_fetch_object($result)) {
+      _votingapi_change_vote($vobj, $vote->value);
+      $exists = TRUE;
+    }
+    if (!$exists) {
+      _votingapi_add_vote($content_type, $content_id, $vote->value, $vote->value_type, $vote->tag);
+    }
+  }
+  
+  if (!$recursion) {
+  	return $vobj;
+  }
+  else {
+  	return _votingapi_recalculate_results($content_type, $content_id);
+  }
+}
+
+/**
+ * Add a new vote for a given piece of content. If the user has already voted, this casts an additional vote.
+ * In most cases, this should not be called directly by external modules.
+ *
+ * @param $content_type
+ *   A string identifying the type of content being rated. Node, comment, aggregator item, etc.
+ * @param $content_id
+ *   The key ID of the content being rated.
+ * @param $value
+ *   An int representing the value of the vote being cast.
+ * @param $value_type
+ *   An optional int representing the meaning of the value param. Three standard types are defined by votingapi:
+ *   VOTINGAPI_VALUE_TYPE_PERCENT -- 'Value' is a number from 0-100. The API will cache an average for all votes. 
+ *   VOTINGAPI_VALUE_TYPE_TOKEN   -- 'Value' is a positive or negative int. The API will cache the sum of all votes.
+ *   VOTINGAPI_VALUE_TYPE_KEY     -- 'Value' is a foreign key. The API will cache a vote-count for each discrete value.
+ *   Other value_types can be passed in, but no default actions will be taken with them by the API. If no value is passed in, VOTINGAPI_VALUE_TYPE_PERCENT is the default.
+ * @param $tag
+ *   A string to separate multiple voting criteria. For example, a voting system that rates software for 'stability' and 'features' would cast two votes, each with a different tag. If none is specified, the default 'vote' tag is used.
+ * @param $uid
+ *   The uid of the user casting the vote. If none is specified, the currently logged in user's uid will be inserted.
+ * @return
+ *   The $vote object cast.
+ */
+function _votingapi_add_vote($content_type, $content_id, $value, $value_type = VOTINGAPI_VALUE_DEFAULT_TYPE, $tag = VOTINGAPI_VALUE_DEFAULT_TAG, $uid = NULL) {
   if ($uid == NULL) {
     global $user;
     $uid = $user->uid;
   }
 
-  $vobj->voting_id = db_next_id('votes');
+  $vobj->vote_id = db_next_id('votingapi_vote');
   $vobj->content_type = $content_type;
   $vobj->content_id = $content_id;
-  $vobj->vote = $vote;
+  $vobj->value = $value;
+  $vobj->value_type = $value_type;
   $vobj->tag = $tag;
   $vobj->uid = $uid;
   $vobj->timestamp = time();
   $vobj->hostname = $_SERVER['REMOTE_ADDR'];
 
-  // Give other modules a chance to alter the vote object before it's inserted,
-  // or update their own auxiliary tables with additional information.
+  db_query("INSERT INTO {votingapi_vote} (vote_id, content_type, content_id, value, value_type, tag, uid, timestamp, hostname) VALUES (%d, '%s', %d, %d, %d, '%s', %d, %d, '%s')", 
+    $vobj->vote_id, $vobj->content_type, $vobj->content_id, $vobj->value, $vobj->value_type, $vobj->tag, $vobj->uid, $vobj->timestamp, $vobj->hostname);
+
+  // Give other modules a chance to act on the insert operation.
   votingapi_invoke_votingapi($vobj, 'insert');
 
-  db_query("INSERT INTO {votes} (voting_id, content_type, content_id, vote, tag, uid, timestamp, hostname) VALUES (%d, '%s', %d, %d, '%s', %d, %d, '%s')", 
-    $vobj->voting_id, $vobj->content_type, $vobj->content_id, $vobj->vote, $vobj->tag, $vobj->uid, $vobj->timestamp, $vobj->hostname);
-  return $vobj;
-}
-
-
-/**
- * Sets the vote for the current user. If they've already voted, this changes it.
- * In most cases, this function should be used by external modules.
- */
-function votingapi_set_vote($content_type, $content_id, $tag, $vote, $uid = NULL) {
-  if ($uid == NULL) {
-    global $user;
-    $uid = $user->uid;
-  }
-
-  $result = db_query("SELECT * FROM {votes} WHERE content_type='%s' AND content_id=%d AND tag = '%s' AND uid=%d", $content_type, $content_id, $tag, $uid);
-  while ($vobj = db_fetch_object($result)) {
-    $vobj = votingapi_change_vote($vobj, $vote);
-    $exists = TRUE;
-  }
-  if (!$exists) {
-    $vobj = votingapi_add_vote($content_type, $content_id, $tag, $vote, $uid);
-  }
   return $vobj;
 }
 
 /**
  * Alters a user's existing vote, if one exists.
+ * In most cases, this should not be called directly by external modules.
+ *
+ * @param $vobj
+ *   A discrete $vote object, or minimally any object with a valid $vobj->vote_id
+ * @param $value
+ *   The new value for the vote.
+ * @return
+ *   The $new version of the vote object.
  */
-function votingapi_change_vote($vobj, $vote) {
-  // Give other modules a chance to respond to the update.
+function _votingapi_change_vote($vobj, $value) {
+  db_query("UPDATE {votingapi_vote} SET value=%d WHERE vote_id=%d", $value, $vobj->vote_id);
+  
+  // Give other modules a chance to respond to the change.
   // Both the existing vote object and the new vote value are handed off to interested
   // modules.
-  votingapi_invoke_votingapi($vobj, 'update', $vote);
-  db_query("UPDATE {votes} SET vote = %d WHERE voting_id = %d", $vote, $vobj->voting_id);
+  votingapi_invoke_votingapi($vobj, 'update', $value);
+  
+  // update the existing $vobj and return it.
+  $vobj->value = $value;
   return $vobj;
 }
 
 /**
- * Deletes an existing vote.
+ * Alters a user's existing vote, if one exists.
+ *
+ * @param $vobj
+ *   A discrete $vote object, or minimally any object with a valid $vobj->vote_id
  */
-function votingapi_delete_vote($vobj) {
-  // Give other modules a chance to respond to the delete.
-  votingapi_invoke_votingapi($vobj, 'delete', $vote);  
-  db_query("DELETE FROM {votes} WHERE voting_id = %d", $voting_id);
+function _votingapi_delete_vote($vobj) {
+  // Give other modules a chance to act on the delete.
+  votingapi_invoke_votingapi($vobj, 'delete');  
+  db_query("DELETE FROM {votingapi_vote} WHERE vote_id=%d", $vobj->vote_id);
 }
 
 /**
- * Get a specific user's votes for a piece of content.
+ * An internal utility function used to pull raw votes for processing. Undocumented at the moment..
  */
-function votingapi_get_votes($content_type, $content_id, $tag_list = NULL, $uid_list = NULL) {
-  $votes->tags = array();
-  $votes->raw_votes = array();
-
+function _votingapi_get_raw_votes($content_type, $content_id, $value_type = NULL, $tag_list = NULL, $uid = NULL) {
   if ($tag_list) {
     $filter_string .= " AND v.tag IN ('" . implode("','",$tag_list) . "')";
   }
-  if ($uid_list) {
-    $filter_string .= " AND v.uid IN (" . implode(',',$uid_list) . ')';
+  if (is_integer($uid)) {
+    $filter_string .= ' AND v.uid = '. $uid;
+  }
+  
+  if (is_integer($value_type)) {
+    $filter_string .= " AND v.value_type = " . $value_type;
   }
 
-  $result = db_query("SELECT * FROM {votes} v WHERE content_type='%s' AND content_id='%s' $filter_string", $content_type, $content_id);
+  $result = db_query("SELECT * FROM {votingapi_vote} v WHERE content_type='%s' AND content_id='%s' $filter_string", $content_type, $content_id);
   while ($vobj = db_fetch_object($result)) {
-    // Give other modules a chance to alter the vote object, add additional data, etc..
+    // Give other modules a chance to alter the vote object, add additional data, etc.
     votingapi_invoke_votingapi($vobj, 'load');
-    $votes->tags[$vote_data->tag][$vobj->voting_id] = $vobj;
-    $votes->raw_votes[$vobj->voting_id] = $vobj;
+    $votes[] = $vobj;
   }
 
-  // Give other modules a chance to do custom totaling/summing/etc of the votes.
-  votingapi_invoke_votingapi($votes, 'calculate');
   return $votes;
 }
 
-function votingapi_get_vote($voting_id) {  
-  $result = db_query('SELECT * FROM {votes} v WHERE voting_id=%d', $voting_id);
-  $vobj = db_fetch_object($result);
-  
-  // Give other modules a chance to alter the vote object, add additional data, etc..
-  votingapi_invoke_votingapi($vobj, 'load');
-  return $vobj;
+/**
+ * A simple helper function that returns all votes cast by a given user for a piece of content.
+ *
+ * @param $content_type
+ *   A string identifying the type of content whose votes are being retrieved. Node, comment, aggregator item, etc.
+ * @param $content_id
+ *   The key ID of the content whose votes are being retrieved.
+ * @param $uid
+ *   The integer uid of the user whose votes should be retrieved.
+ * @return
+ *   An array of matching votingapi_vote records.
+ */
+function votingapi_get_user_votes($content_type, $content_id, $uid) {
+  return _votingapi_get_raw_votes($content_type, $content_id, NULL, NULL, $uid);
 }
 
 
+/**
+ * A simple helper function that returns the cached voting results for a given piece of content.
+ *
+ * @param $content_type
+ *   A string identifying the type of content whose votes are being retrieved. Node, comment, aggregator item, etc.
+ * @param $content_id
+ *   The key ID of the content whose votes are being retrieved.
+ * @return
+ *   An array of matching votingapi_cache records.
+ */
+function votingapi_get_voting_results($content_type, $content_id) {
+  $result = db_query("SELECT * FROM {votingapi_cache} v WHERE content_type='%s' AND content_id='%s'", $content_type, $content_id);
+  while ($cached = db_fetch_object($result)) {
+    $voting_results[] = $cached;
+  }
+  return $voting_results;
+}
+
+
+/**
+ * Loads all votes for a given piece of content, then calculates and caches the aggregate vote results.
+ *
+ * @param $content_type
+ *   A string identifying the type of content being rated. Node, comment, aggregator item, etc.
+ * @param $content_id
+ *   The key ID of the content being rated.
+ * @param $value_type
+ *   An int representing the value_type to be used as a filter.
+ * @param $tags
+ *   A single string tag or an array of tags to be used as a filter.
+ * @return
+ *   An array of the resulting votingapi_cache records, structured thusly:
+ *   array($tag => array($value_type => array($calculation_function => $value)));
+ */
+
+function _votingapi_recalculate_results($content_type, $content_id, $value_type = NULL, $tags = NULL) {
+  // blow away the existing cache records, filtered by value_type and tag if necessary.
+  if (is_array($tags)) {
+    $tags .= implode("','",$tags);
+  }
+
+  if ($value_type == NULL && $tags == NULL) {
+    db_query("DELETE FROM {votingapi_cache} WHERE content_type = '%s' AND content_id = %d", $content_type, $content_id);
+  }
+  else if ($value_type != NULL && $tags == NULL) {
+    db_query("DELETE FROM {votingapi_cache} WHERE content_type = '%s' AND content_id = %d AND value_type = %d", $content_type, $content_id, $value_type);
+  }
+  else if ($value_type == NULL && $tags != NULL) {
+    db_query("DELETE FROM {votingapi_cache} WHERE content_type = '%s' AND content_id = %d AND tag IN ('%s')", $content_type, $content_id, $value_type, $tags);
+  }
+  else if ($value_type != NULL && $tag != NULL) {
+    db_query("DELETE FROM {votingapi_cache} WHERE content_type = '%s' AND content_id = %d AND value_type = %d AND tag IN ('%s')", $content_type, $content_id, $value_type, $tags);
+  }
+
+  $cache = array();
+  $votes = _votingapi_get_raw_votes($content_type, $content_id, $value_type, $tags);
+  
+  // Loop through, calculate per-type and per-tag totals, etc.
+  foreach($votes as $vote) {
+    switch ($vote->value_type) {
+      case VOTINGAPI_VALUE_TYPE_PERCENT:
+        $cache[$vote->tag][$vote->value_type]['count'] = $cache[$vote->tag][$vote->value_type]['count'] + 1;
+        $cache[$vote->tag][$vote->value_type]['sum'] = $cache[$vote->tag][$vote->value_type]['sum'] + $vote->value;
+        break;
+        
+      case VOTINGAPI_VALUE_TYPE_TOKEN:
+        $cache[$vote->tag][$vote->value_type]['count'] = $cache[$vote->tag][$vote->value_type]['count'] + 1;
+        $cache[$vote->tag][$vote->value_type]['sum'] = $cache[$vote->tag][$vote->value_type]['sum'] + $vote->value;
+        break;
+        
+      case VOTINGAPI_VALUE_TYPE_KEY:
+        $cache[$vote->tag][$vote->value_type][$vote->value] = $cache[$vote->tag][$vote->value_type][$vote->value] + 1;
+        break;
+    }
+  }
+ 
+  // Do a quick loop through to calculate averages.
+  // This is also a good example of how external modules can do their own processing.
+  foreach ($cache as $tag=>$types) {
+    foreach ($types as $type=>$functions) {
+      if ($type == VOTINGAPI_VALUE_TYPE_PERCENT || $type == VOTINGAPI_VALUE_TYPE_TOKEN) {
+        $cache[$tag][$type]['average'] = $functions['sum'] / $functions['count'];
+      }
+      if ($type == VOTINGAPI_VALUE_TYPE_PERCENT) {
+        // we don't actually need the sum for this. discard it to avoid cluttering the db.
+        unset($cache[$tag][$type]['sum']);
+      }
+    }
+  }
+
+  // Give other modules a chance to alter the collection of votes.
+  votingapi_invoke_votingapi($cache, 'calculate', $votes);
+  
+  // Now, do the caching. Woo.
+  foreach ($cache as $tag=>$types) {
+    foreach ($types as $type=>$functions) {
+      foreach ($functions as $function=>$value) {
+       $cached[] = _votingapi_insert_cache_result($content_type, $content_id, $value, $type, $tag, $function);
+      }
+    }
+  }
+  return $cached;
+}
+
+
+/**
+ * Insert a cached aggregate vote for a given piece of content.
+ *
+ * @param $content_type
+ *   A string identifying the type of content being rated. Node, comment, aggregator item, etc.
+ * @param $content_id
+ *   The key ID of the content being rated.
+ * @param $value
+ *   An int representing the aggregate value of the votes cast.
+ * @param $value_type
+ *   An int representing the value_type shared by the aggregated votes.
+ * @param $tag
+ *   A string to separate multiple voting criteria. For example, a voting system that rates software for 'stability' and 'features' would cast two votes, each with a different tag. If none is specified, the default 'vote' tag is used.
+ * @param $function
+ *   The summary function being used to aggregate the votes. 'sum', 'count', and 'average' are used by votingapi. If the value_type is VOTINGAPI_VALUE_TYPE_KEY, this field contains the key. Slightly ugly, but oh well.
+ * @return
+ *   The resulting cached object.
+ */
+function _votingapi_insert_cache_result($content_type, $content_id, $value, $value_type, $tag, $function) {
+  $vobj->vote_cache_id = db_next_id('votingapi_cache');
+  $vobj->content_type = $content_type;
+  $vobj->content_id = $content_id;
+  $vobj->value = $value;
+  $vobj->value_type = $value_type;
+  $vobj->tag = $tag;
+  $vobj->function = $function;
+  
+  db_query("INSERT INTO {votingapi_cache} (vote_cache_id, content_type, content_id, value, value_type, tag, function) VALUES (%d, '%s', %d, %d, %d, '%s', '%s')", 
+    $vobj->vote_cache_id, $vobj->content_type, $vobj->content_id, $vobj->value, $vobj->value_type, $vobj->tag, $vobj->function);
+
+  return $vobj;
+}
 
 /**
  * Invoke a hook_votingapi() operation in all modules.
@@ -152,3 +372,4 @@ function votingapi_invoke_votingapi(&$vote, $op, $a3 = NULL) {
   }
   return $return;
 }
+
