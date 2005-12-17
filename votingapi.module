@@ -73,7 +73,7 @@ function votingapi_set_vote($content_type, $content_id, $vote, $uid = NULL, $rec
     }
   }
   
-  if (!$recursion) {
+  if ($recursion) {
   	return $vobj;
   }
   else {
