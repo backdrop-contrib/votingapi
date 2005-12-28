@@ -63,6 +63,13 @@ function votingapi_set_vote($content_type, $content_id, $vote, $uid = NULL, $rec
     votingapi_set_vote($content_type, $content_id, $vobj, $uid, TRUE);
   }
   else if (is_object($vote)) {
+    if (!isset($vote->value_type)) {
+      $vote->value_type = VOTINGAPI_VALUE_DEFAULT_TYPE;
+    }
+    if (!isset($vote->tag)) {
+      $vote->value_type = VOTINGAPI_VALUE_DEFAULT_TAG;
+    }
+
     $result = db_query("SELECT * FROM {votingapi_vote} WHERE content_type='%s' AND content_id=%d AND tag='%s' AND value_type=%d AND uid=%d", $content_type, $content_id, $vote->tag, $vote->value_type, $uid);
     while ($vobj = db_fetch_object($result)) {
       _votingapi_change_vote($vobj, $vote->value);
