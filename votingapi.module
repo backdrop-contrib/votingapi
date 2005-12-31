@@ -232,6 +232,33 @@ function votingapi_get_voting_results($content_type, $content_id) {
   return $voting_results;
 }
 
+/**
+ * A simple helper function that returns a single cached voting result.
+ *
+ * @param $content_type
+ *   A string identifying the type of content whose votes are being retrieved. Node, comment, aggregator item, etc.
+ * @param $content_id
+ *   The key ID of the content whose votes are being retrieved.
+ * @param $value_type
+ *   An optional int representing the type of value saved in the vote. Three standard types are defined by votingapi:
+ *   VOTINGAPI_VALUE_TYPE_PERCENT -- 'Value' is a number from 0-100. The API will cache an average for all votes. 
+ *   VOTINGAPI_VALUE_TYPE_TOKEN   -- 'Value' is a positive or negative int. The API will cache the sum of all votes.
+ *   VOTINGAPI_VALUE_TYPE_KEY     -- 'Value' is a foreign key. The API will cache a vote-count for each discrete value.
+ * @param $tag
+ *   A string to separate multiple voting criteria. For example, a voting system that rates software for 'stability' and 'features' would cast two votes, each with a different tag. If none is specified, the default 'vote' tag is used.
+ * @param $function
+ *   A string to indicate the aggregate function being retrieved (average, count, max, etc)
+ * @return
+ *   A single voting result object.
+ */
+function votingapi_get_voting_result($content_type, $content_id, $value_type, $tag, $function) {
+  $result = db_query("SELECT * FROM {votingapi_cache} v WHERE content_type='%s' AND content_id='%s' AND value_type=%d AND tag='%s' AND function='%s'", $content_type, $content_id, $value_type, $tag, $function);
+  while ($cached = db_fetch_object($result)) {
+    $voting_results = $cached;
+  }
+  return $voting_results;
+}
+
 
 /**
  * Loads all votes for a given piece of content, then calculates and caches the aggregate vote results.
