@@ -182,7 +182,18 @@ function _votingapi_get_raw_votes($content_type, $content_id, $value_type = NULL
   if (is_integer($uid)) {
     $filter_string .= ' AND v.uid = '. $uid;
   }
-  
+  elseif (is_array($uid)) {
+    $uid_list = array();
+    foreach ($uid as $discrete_uid) {
+      if (is_numeric($discrete_uid)) {
+        $uid_list[] = $discrete_uid;
+      }
+    }
+    if (count($uid_list)) {
+      $filter_string .= " AND v.uid IN ('" . implode("','",$uid_list) . "')";
+    }
+  }
+
   if (is_integer($value_type)) {
     $filter_string .= " AND v.value_type = " . $value_type;
   }
