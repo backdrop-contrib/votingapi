@@ -308,7 +308,7 @@ function _votingapi_recalculate_results($content_type, $content_id, $value_type 
   else if ($value_type == NULL && $tags != NULL) {
     db_query("DELETE FROM {votingapi_cache} WHERE content_type = '%s' AND content_id = %d AND tag IN ('%s')", $content_type, $content_id, $value_type, $tags);
   }
-  else if ($value_type != NULL && $tag != NULL) {
+  else if ($value_type != NULL && $tags != NULL) {
     db_query("DELETE FROM {votingapi_cache} WHERE content_type = '%s' AND content_id = %d AND value_type = %d AND tag IN ('%s')", $content_type, $content_id, $value_type, $tags);
   }
 
