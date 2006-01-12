@@ -56,7 +56,7 @@ function votingapi_set_vote($content_type, $content_id, $vote, $uid = NULL, $rec
       $user_votes[] = votingapi_set_vote($content_type, $content_id, $vobj, $uid, TRUE);
     }
   }
-  else if (is_integer($vote) || is_float($vote)) {
+  else if (is_numeric($vote)) {
     $vobj->value = $vote;
     $vobj->value_type = VOTINGAPI_VALUE_DEFAULT_TYPE;
     $vobj->tag = VOTINGAPI_VALUE_DEFAULT_TAG;
@@ -179,8 +179,10 @@ function _votingapi_get_raw_votes($content_type, $content_id, $value_type = NULL
   if ($tag_list) {
     $filter_string .= " AND v.tag IN ('" . implode("','",$tag_list) . "')";
   }
-  if (is_integer($uid)) {
-    $filter_string .= ' AND v.uid = '. $uid;
+  
+  // Still not sure all this checking is necessary, but a quick cast can't hurt.
+  if (is_numeric($uid)) {
+    $filter_string .= ' AND v.uid = '. (int)$uid;
   }
   elseif (is_array($uid)) {
     $uid_list = array();
@@ -220,7 +222,11 @@ function _votingapi_get_raw_votes($content_type, $content_id, $value_type = NULL
  * @return
  *   An array of matching votingapi_vote records.
  */
-function votingapi_get_user_votes($content_type, $content_id, $uid) {
+function votingapi_get_user_votes($content_type, $content_id, $uid = NULL) {
+  if ($uid == NULL) {
+    global $user;
+    $uid = $user->uid;
+  }
   return _votingapi_get_raw_votes($content_type, $content_id, NULL, NULL, $uid);
 }
 
