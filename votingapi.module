@@ -161,7 +161,7 @@ function _votingapi_change_vote($vobj, $value) {
 }
 
 /**
- * Alters a user's existing vote, if one exists.
+ * Deletes a user's existing vote, if one exists.
  *
  * @param $vobj
  *   A discrete $vote object, or minimally any object with a valid $vobj->vote_id
@@ -170,6 +170,20 @@ function _votingapi_delete_vote($vobj) {
   // Give other modules a chance to act on the delete.
   votingapi_invoke_votingapi($vobj, 'delete');  
   db_query("DELETE FROM {votingapi_vote} WHERE vote_id=%d", $vobj->vote_id);
+}
+
+
+/**
+ * Deletes a user's existing vote, if one exists.
+ * This external function differs from the internal version in that it
+ * calls the recalculation command automatically.
+ *
+ * @param $vobj
+ *   A discrete $vote object, or minimally any object with a valid $vobj->vote_id
+ */
+function votingapi_delete_vote($vobj) {
+  _votingapi_delete_vote($vobj);
+  _votingapi_recalculate_results($vobj->content_type, $vobj->content_id);
 }
 
 /**
@@ -385,6 +399,7 @@ function _votingapi_recalculate_results($content_type, $content_id, $value_type 
       }
     }
   }
+
   return $cached;
 }
 
