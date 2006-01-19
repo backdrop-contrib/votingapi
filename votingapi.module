@@ -389,7 +389,7 @@ function _votingapi_recalculate_results($content_type, $content_id, $value_type 
   }
 
   // Give other modules a chance to alter the collection of votes.
-  votingapi_invoke_votingapi($cache, 'calculate', $votes);
+  votingapi_invoke_votingapi($cache, 'calculate', $votes, $content_type, $content_id);
   
   // Now, do the caching. Woo.
   foreach ($cache as $tag=>$types) {
@@ -399,6 +399,9 @@ function _votingapi_recalculate_results($content_type, $content_id, $value_type 
       }
     }
   }
+
+  // Give other modules a chance to act on the results of the vote totaling.
+  votingapi_invoke_votingapi($cache, 'post calculate', $votes, $content_type, $content_id);
 
   return $cached;
 }
@@ -445,16 +448,16 @@ function _votingapi_insert_cache_result($content_type, $content_id, $value, $val
  * @param $op
  *   A string containing the name of the votingapi operation.
  *   Currently, insert/update/delete, load, and calculate are supported.
- * @param $a3
- *   An additional argument to pass on to the hook, after the $vote and $op arguments.
+ * @param $a3, $a4, $a5
+ *   Additional arguments to pass on to the hook, after the $vote and $op arguments.
  * @return
  *   The returned value of the invoked hooks.
  */
-function votingapi_invoke_votingapi(&$vote, $op, $a3 = NULL) {
+function votingapi_invoke_votingapi(&$vote, $op, $a3=NULL, $a4=NULL, $a5=NULL) {
   $return = array();
   foreach (module_implements('votingapi') as $name) {
     $function = $name .'_votingapi';
-    $result = $function($vote, $op, $a3);
+    $result = $function($vote, $op, $a3, $a4, $a5);
     if (is_array($result)) {
       $return = array_merge($return, $result);
     }
