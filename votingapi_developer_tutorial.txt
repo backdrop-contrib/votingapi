@@ -1,0 +1,29 @@
+So You Want To Use The Voting API
+=================================
+
+If you're reading this, you're probably a Drupal module developer looking to integrate content ratings, moderation, or some other sort of voting system into your project. For simple voting systems, that's not very difficult, but you'd like to make sure that other modules can take advantage of the ratings and voting data you're collecting. Enter... The Voting API.
+
+What is it?
+-----------
+VotingAPI is a module that handles saving, changing, and retrieving votes on Drupal content. It also calculates the results of all votes for a given piece of contentm. Your module handles the 'special' stuff, like deciding how to display the results of a vote to users, who can vote, and what to do with the results. VotingAPI also provides hooks for your module to perform custom calculations (like median vote, or giving more weight to votes by administrators).
+
+
+How does it work?
+-----------------
+VotingAPI can handle some rather esoteric scenerios, but before we get to that, it helps to understand the simple case. Here's how it goes, at a high level:
+
+1) Your module displays a voting form to a user -- perhaps a little five-star rating widget at the bottom of each node.
+
+2) When a user submits their vote, your module calls votingapi_set_vote(), passing in the type of content that's being voted on (like 'node' or 'comment'), the id of the content, and the value of the vote.
+
+3) VotingAPI checks to see if the current user has already voted on the content. If they have, it alters their existing vote. If not, it saves a new vote.
+
+4) VotingAPI gathers up all the OTHER votes that have been cast on that piece of content, and calculates a few standard functions like the average vote value, the total number of votes cast, etc.
+
+5) VotingAPI creates a 'vote result' record for each of those functions (average, total, etc). Before saving those result records, it triggers the votingapi_hook, with the operation 'calculate'.
+
+6) Any modules that implement the votingapi_hook can look at the existing votes that have been cast, and the collection of vote results that are about to be saved. Your module can insert its own result calculations into this collection, (to override the default calculations, or add custom calculations). VotingAPI will save them automatically.
+
+7) After the results have been saved, VotingAPI triggers the votingapi_hook again, this time with a 'post calculate' operation. That allows your module to act on the results of a vote -- without modifying the votes themselves.
+
+8) Once all that is done, your module can look up the results by calling votingapi_get_voting_results() and passing in the content type and the content id. You'll get back a collection of voting result objects, one for each calculation function that was run on the votes. In most cases, you'll be interested in the 'count' and 'average' functions.
