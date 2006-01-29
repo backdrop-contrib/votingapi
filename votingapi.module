@@ -401,7 +401,7 @@ function _votingapi_recalculate_results($content_type, $content_id, $value_type 
   }
 
   // Give other modules a chance to act on the results of the vote totaling.
-  votingapi_invoke_votingapi($cache, 'post calculate', $votes, $content_type, $content_id);
+  votingapi_invoke_votingapi($cached, 'post calculate', $votes, $content_type, $content_id);
 
   return $cached;
 }
