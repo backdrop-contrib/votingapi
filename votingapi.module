@@ -81,10 +81,10 @@ function votingapi_set_vote($content_type, $content_id, $vote, $uid = NULL, $rec
   }
   
   if ($recursion) {
-  	return $vobj;
+    return $vobj;
   }
   else {
-  	return _votingapi_recalculate_results($content_type, $content_id);
+    return _votingapi_recalculate_results($content_type, $content_id);
   }
 }
 
@@ -125,7 +125,12 @@ function _votingapi_add_vote($content_type, $content_id, $value, $value_type = V
   $vobj->tag = $tag;
   $vobj->uid = $uid;
   $vobj->timestamp = time();
-  $vobj->hostname = $_SERVER['REMOTE_ADDR'];
+  if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+    $vobj->hostname = $_SERVER['HTTP_X_FORWARDED_FOR'];
+  }
+  else {
+    $vobj->hostname = $_SERVER['REMOTE_ADDR'];
+  }
 
   db_query("INSERT INTO {votingapi_vote} (vote_id, content_type, content_id, value, value_type, tag, uid, timestamp, hostname) VALUES (%d, '%s', %d, %d, %d, '%s', %d, %d, '%s')", 
     $vobj->vote_id, $vobj->content_type, $vobj->content_id, $vobj->value, $vobj->value_type, $vobj->tag, $vobj->uid, $vobj->timestamp, $vobj->hostname);
@@ -242,6 +247,26 @@ function votingapi_get_user_votes($content_type, $content_id, $uid = NULL) {
     $uid = $user->uid;
   }
   return _votingapi_get_raw_votes($content_type, $content_id, NULL, NULL, $uid);
+}
+
+
+/**
+ * A helper function that returns an array of votes for one piece of content, keyed by the user who cast them.
+ *
+ * @param $content_type
+ *   A string identifying the type of content whose votes are being retrieved. Node, comment, aggregator item, etc.
+ * @param $content_id
+ *   The key ID of the content whose votes are being retrieved.
+ * @return
+ *   An array of matching votingapi_vote records.
+ */
+function votingapi_get_content_votes($content_type, $content_id) {
+  $votes = _votingapi_get_raw_votes($content_type, $content_id);
+  $uid_keyed = array();
+  foreach ($votes as $vote) {
+    $uid_keyed[$vote->uid][] = $vote;
+  }
+  return $uid_keyed;
 }
 
 /**
