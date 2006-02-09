@@ -29,7 +29,7 @@ function votingapi_update_2() {
     case 'mysql':
     case 'mysqli':
       $ret[] = update_sql("ALTER TABLE {votingapi_cache} CHANGE value value float(10) default NULL");
-      $ret[] = update_sql("ALTER TABLE {votingapi_vote} CHANGE value float(10) default NULL");
+      $ret[] = update_sql("ALTER TABLE {votingapi_vote} CHANGE value value float(10) default NULL");
       break;
   }
 
