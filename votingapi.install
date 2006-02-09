@@ -1,0 +1,37 @@
+<?php
+
+// $Id
+
+/**
+ * Implementation of hook_version().
+ */
+function votingapi_version($type) {
+  switch ($type) {
+    case SCHEMA:
+      return 2;
+  }
+}
+
+/**
+ * UTF8 update
+ */
+function votingapi_update_1() {
+  return _system_update_utf8(array('votingapi_vote', 'votingapi_cache'));
+}
+
+/**
+ * Value fields changed to signed floats.
+ */
+function votingapi_update_2() {
+  $ret = array();
+  _system_update_utf8(array('votingapi_vote', 'votingapi_cache'));
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("ALTER TABLE {votingapi_cache} CHANGE value value float(10) default NULL");
+      $ret[] = update_sql("ALTER TABLE {votingapi_vote} CHANGE value float(10) default NULL");
+      break;
+  }
+
+  return $ret;
+}
