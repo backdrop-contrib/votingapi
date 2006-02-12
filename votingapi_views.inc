@@ -36,21 +36,32 @@ function votingapi_views_tables() {
           VOTINGAPI_VALUE_TYPE_KEY => 'Custom',
         ),
         'list-type' => "select",
+        'handler' => 'votingapi_views_nullable_field_handler',
         'help' => "Filter by the type of result being calculated (Percentage, points, etc)",
       ),
-      "criteria" => array(
+      "tag" => array(
         'name' => "VotingAPI: Result criteria",
         'operator' => array("=" => "Is", "!=" => "Is Not"),
         'list' => "votingapi_handler_cache_vote_tags",
         'list-type' => "select",
-        'help' => "Filter by the criteria being voted on",
+         'handler' => 'votingapi_views_nullable_field_handler',
+       'help' => "Filter by the criteria being voted on",
       ),
       "function" => array(
         'name' => "VotingAPI: Result function",
         'operator' => array("=" => "Is", "!=" => "Is Not"),
         'list' => "votingapi_handler_cache_vote_functions",
         'list-type' => "select",
+        'handler' => 'votingapi_views_nullable_field_handler',
         'help' => "Filter by the function used to aggregate results (total number of votes, average vote, etc)",
+      ),
+      "value" => array(
+        'name' => t("VotingAPI: Has been voted on"),
+        'list' => array('NULL' => 'Voted'),
+        'list-type' => "select",
+        'operator' => array('IS NOT' => "Yes", 'IS' => "No"),
+        'handler' => 'votingapi_views_value_is_nullable_handler',
+        'help' => t("This will filter out nodes that have or have not been voted on."),
       ),
     ),
   );
@@ -90,13 +101,15 @@ function votingapi_views_tables() {
           VOTINGAPI_VALUE_TYPE_KEY => 'Custom',
         ),
         'list-type' => "select",
+        'handler' => 'votingapi_views_nullable_field_handler',
         'help' => "Filter by the type of result being calculated (Percentage, points, etc)",
       ),
-      "criteria" => array(
+      "tag" => array(
         'name' => "VotingAPI: Vote criteria",
         'operator' => array("=" => "Is", "!=" => "Is Not"),
         'list' => "votingapi_handler_vote_tags",
         'list-type' => "select",
+        'handler' => 'votingapi_views_nullable_field_handler',
         'help' => "Filter by the criteria being voted on",
       ),
       "currentuidtouched" => array(
@@ -106,6 +119,7 @@ function votingapi_views_tables() {
         'list' => "views_handler_filter_usercurrent",
         'list-type' => 'select',
         'handler' => "votingapi_views_handler_filter_uid_voted",
+        'handler' => 'votingapi_views_nullable_field_handler',
         'help' => "This allows you to filter by whether or not the logged in user has voted on the node.",
       ),
     ),
@@ -165,6 +179,24 @@ function votingapi_handler_vote_tags() {
 
 
 function votingapi_views_handler_filter_uid_voted($op, $filter, $filterinfo, &$query) {
-  $query->set_distinct(); // once you do this, there's just one node.
   $query->add_where("votingapi_vote.uid = '%s'", $filter['value']);
+}
+
+
+function votingapi_views_value_is_nullable_handler($op, $filter, $filterinfo, &$query) {
+  $tn = $query->add_table($filterinfo['table']);
+  $tname = $query->get_table_name($filterinfo['table'], $tn);
+  $query->add_where("$tname.value $filter[operator] NULL");
+}
+
+
+function votingapi_views_nullable_field_handler($op, $filter, $filterinfo, &$query) {
+  $tn = $query->add_table($filterinfo['table']);
+  $tname = $filter['field'];
+  $fvalue = $filter['value'];
+  $fop = $filter['operator'];
+  $query->add_where("$tname $fop '$fvalue' OR $tname IS NULL");
+}
+
+function votingapi_views_value_format_handler($op, $filter, $filterinfo, &$query) {
 }
