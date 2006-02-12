@@ -14,6 +14,10 @@ define('VOTINGAPI_VALUE_TYPE_KEY', 3);
 define('VOTINGAPI_VALUE_DEFAULT_TAG', 'vote');
 define('VOTINGAPI_VALUE_DEFAULT_TYPE', 1);
 
+if (module_exist('views')) {
+  include_once('votingapi_views.inc');
+}
+
 /**
  * Implementation of hook_help().
  */
