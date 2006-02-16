@@ -21,13 +21,13 @@ function votingapi_views_tables() {
         'name' => t("VotingAPI: Voting results"),
         'sortable' => true,
         'handler' => 'votingapi_views_value_display_handler',
-        'addlfields' => array('value_type', 'tag', 'function'),
+        'addlfields' => array('value_type', 'tag', 'function', 'content_type', 'content_id'),
       ),
       "tag" => array(
         'name' => t("VotingAPI: Vote criteria"),
         'sortable' => true,
         'handler' => 'votingapi_views_criteria_display_handler',
-        'addlfields' => array('value_type', 'value', 'function'),
+        'addlfields' => array('value_type', 'value', 'function', 'content_type', 'content_id'),
       ),
     ),
     "sorts" => array(
@@ -51,8 +51,8 @@ function votingapi_views_tables() {
         'operator' => array("=" => "Is", "!=" => "Is Not"),
         'list' => "votingapi_handler_cache_vote_tags",
         'list-type' => "select",
-         'handler' => 'votingapi_views_nullable_field_handler',
-       'help' => "Filter by the criteria being voted on",
+        'handler' => 'votingapi_views_nullable_field_handler',
+        'help' => "Filter by the criteria being voted on",
       ),
       "function" => array(
         'name' => "VotingAPI: Result function",
@@ -92,20 +92,29 @@ function votingapi_views_tables() {
       "value" => array(
         'name' => t("VotingAPI: Individual vote"),
         'sortable' => true,
-        'addlfields' => array('value_type', 'tag', 'function', 'uid'),
+        'handler' => 'votingapi_views_value_display_handler',
+        'sortable' => true,
+        'addlfields' => array('value_type', 'tag', 'uid', 'content_type', 'content_id'),
       ),
-      "value" => array(
+      "tag" => array(
         'name' => t("VotingAPI: Individual vote criteria"),
         'sortable' => true,
-        'handler' => 'votingapi_views_value_display_handler',
-        'addlfields' => array('value_type', 'value', 'function', 'uid'),
+        'handler' => 'votingapi_views_criteria_display_handler',
+        'addlfields' => array('value_type', 'value', 'uid', 'content_type', 'content_id'),
       ),
-      "value" => array(
+      "uid" => array(
+        'name' => t("VotingAPI: Individual vote user"),
+        'handler' => 'votingapi_views_handler_field_username', 
+        'sortable' => true, 
+        'uid' => "uid", 
+        'addlfields' => array('uid', 'content_type', 'content_id'),
+      ),
+      "currentuservalue" => array(
         'name' => t("VotingAPI: Current user's vote"),
         'sortable' => true,
         'handler' => 'votingapi_views_value_display_handler',
         'queryhandler' => 'votingapi_views_handler_vote_uid_is_currentuser',
-        'addlfields' => array('value_type', 'tag', 'function', 'uid'),
+        'addlfields' => array('value_type', 'tag', 'uid', 'content_type', 'content_id'),
       ),
     ),
     "sorts" => array(
@@ -221,17 +230,19 @@ function votingapi_views_value_display_handler($op, $filter, $value, &$query) {
   if (!isset($value)) {
     return t('no votes');
   }
-  
+  $t = $filter['tablename'] . "_";
+  $q = (array)$query;
+
   $vobj->value = check_plain($value);
-  $vobj->value_type = $fielddata['tablename'] . "_"  . $fieldinfo['value_type'];
-  $vobj->content_type = $fielddata['tablename'] . "_"  . $fieldinfo['content_type'];
-  $vobj->content_id = $fielddata['tablename'] . "_"  . $fieldinfo['content_id'];
-  $vobj->tag = $fielddata['tablename'] . "_"  . $fieldinfo['tag'];
-  if (isset($fieldinfo['function'])) {
-    $vobj->function = $fielddata['tablename'] . "_"  . $fieldinfo['function'];
+  $vobj->value_type =  $q[$t . 'value_type'];
+  $vobj->content_type = $q[$t . 'content_type'];
+  $vobj->content_id = $q[$t . 'content_id'];
+  $vobj->tag = $q[$t . 'tag'];
+  if (isset($q[$t . 'function'])) {
+    $vobj->function = $q[$t . 'function'];
   }
-  if (isset($fieldinfo['uid'])) {
-    $vobj->uid = $fielddata['tablename'] . "_"  . $fieldinfo['uid'];
+  if (isset($q[$t . 'uid'])) {
+    $vobj->uid = $q[$t . 'uid'];
   }
   $result = votingapi_invoke_votingapi($vobj, 'format value');
 
@@ -247,19 +258,20 @@ function votingapi_views_criteria_display_handler($op, $filter, $value, &$query)
   if (!isset($value)) {
     return t('no votes');
   }
-  
+  $t = $filter['tablename'] . "_";
+  $q = (array)$query;
+
   $vobj->value = check_plain($value);
-  $vobj->value_type = $fielddata['tablename'] . "_"  . $fieldinfo['value_type'];
-  $vobj->content_type = $fielddata['tablename'] . "_"  . $fieldinfo['content_type'];
-  $vobj->content_id = $fielddata['tablename'] . "_"  . $fieldinfo['content_id'];
-  $vobj->tag = $fielddata['tablename'] . "_"  . $fieldinfo['tag'];
-  if (isset($fieldinfo['function'])) {
-    $vobj->function = $fielddata['tablename'] . "_"  . $fieldinfo['function'];
+  $vobj->value_type =  $q[$t . 'value_type'];
+  $vobj->content_type = $q[$t . 'content_type'];
+  $vobj->content_id = $q[$t . 'content_id'];
+  $vobj->tag = $q[$t . 'tag'];
+  if (isset($q[$t . 'function'])) {
+    $vobj->function = $q[$t . 'function'];
   }
-  if (isset($fieldinfo['uid'])) {
-    $vobj->uid = $fielddata['tablename'] . "_"  . $fieldinfo['uid'];
+  if (isset($q[$t . 'uid'])) {
+    $vobj->uid = $q[$t . 'uid'];
   }
-  
   $result = votingapi_invoke_votingapi($vobj, 'format criteria');
 
   if (isset($result[0])) {
@@ -274,4 +286,10 @@ function votingapi_views_criteria_display_handler($op, $filter, $value, &$query)
 function votingapi_views_handler_vote_uid_is_currentuser($op, $filter, $filterinfo, &$query) {
   global $user;
   $query->add_where("votingapi_vote.uid = '%s'", $user->uid);
+}
+
+function votingapi_views_handler_field_username($fieldinfo, $fielddata, $value, $data) {
+  $uidfield = $fielddata['tablename'] . "_"  . $fieldinfo['uid'];
+  $user = user_load(array('uid' => $data->$uidfield));
+  return theme('username', $user);
 }
