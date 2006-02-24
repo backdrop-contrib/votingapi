@@ -12,7 +12,9 @@ CREATE TABLE votingapi_vote (
   uid int(10) unsigned default '0',
   timestamp int(11) default NULL,
   hostname varchar(128) default '0',
-  PRIMARY KEY  (vote_id)
+  PRIMARY KEY  (vote_id),
+  KEY content_type (content_type),
+  KEY content_id (content_id)
  ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
  
 CREATE TABLE votingapi_cache (
@@ -23,5 +25,7 @@ CREATE TABLE votingapi_cache (
   value_type varchar(20) NOT NULL,
   tag varchar(128) default 'vote',
   function varchar(128) default 'count',
-  PRIMARY KEY  (vote_cache_id)
+  PRIMARY KEY  (vote_cache_id),
+  KEY content_type (content_type),
+  KEY content_id (content_id)
  ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;

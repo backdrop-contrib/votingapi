@@ -26,7 +26,9 @@ function votingapi_install() {
           uid int(10) unsigned default '0',
           timestamp int(11) default NULL,
           hostname varchar(128) default '0',
-          PRIMARY KEY  (vote_id)
+          PRIMARY KEY  (vote_id),
+          KEY content_type (content_type),
+          KEY content_id (content_id)
          ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
 
       db_query("CREATE TABLE votingapi_cache (
@@ -37,7 +39,9 @@ function votingapi_install() {
           value_type varchar(20) NOT NULL,
           tag varchar(128) default 'vote',
           function varchar(128) default 'count',
-          PRIMARY KEY  (vote_cache_id)
+          PRIMARY KEY  (vote_cache_id),
+          KEY content_type (content_type),
+          KEY content_id (content_id)
          ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
 
       break;
@@ -78,11 +82,16 @@ function votingapi_update_3() {
     case 'mysqli':
       $ret[] = update_sql("ALTER TABLE {votingapi_cache} CHANGE value_type value_type varchar(20) NOT NULL");
       $ret[] = update_sql("ALTER TABLE {votingapi_vote} CHANGE value_type value_type varchar(20) NOT NULL");
-      
+
+      $ret[] = update_sql("ALTER TABLE {votingapi_cache} ADD INDEX (content_type)");
+      $ret[] = update_sql("ALTER TABLE {votingapi_cache} ADD INDEX (content_id)");
+      $ret[] = update_sql("ALTER TABLE {votingapi_vote} ADD INDEX (content_type)");
+      $ret[] = update_sql("ALTER TABLE {votingapi_vote} ADD INDEX (content_id)");
+
       $ret[] = db_query("UPDATE {votingapi_cache} SET value_type = 'percent' WHERE value_type = '1'");
       $ret[] = db_query("UPDATE {votingapi_cache} SET value_type = 'points' WHERE value_type = '2'");
       $ret[] = db_query("UPDATE {votingapi_cache} SET value_type = 'option' WHERE value_type = '3'");
-      
+
       $ret[] = db_query("UPDATE {votingapi_vote} SET value_type = 'percent' WHERE value_type = '1'");
       $ret[] = db_query("UPDATE {votingapi_vote} SET value_type = 'points' WHERE value_type = '2'");
       $ret[] = db_query("UPDATE {votingapi_vote} SET value_type = 'option' WHERE value_type = '3'");

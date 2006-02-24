@@ -392,17 +392,17 @@ function _votingapi_recalculate_results($content_type, $content_id, $value_type 
   foreach($votes as $vote) {
     switch ($vote->value_type) {
       case 'percent':
-        $cache[$vote->tag][$vote->value_type]['count'] = $cache[$vote->tag][$vote->value_type]['count'] + 1;
-        $cache[$vote->tag][$vote->value_type]['sum'] = $cache[$vote->tag][$vote->value_type]['sum'] + $vote->value;
+        $cache[$vote->tag][$vote->value_type]['count'] += 1;
+        $cache[$vote->tag][$vote->value_type]['sum'] += $vote->value;
         break;
         
       case 'points':
-        $cache[$vote->tag][$vote->value_type]['count'] = $cache[$vote->tag][$vote->value_type]['count'] + 1;
-        $cache[$vote->tag][$vote->value_type]['sum'] = $cache[$vote->tag][$vote->value_type]['sum'] + $vote->value;
+        $cache[$vote->tag][$vote->value_type]['count'] += 1;
+        $cache[$vote->tag][$vote->value_type]['sum'] += $vote->value;
         break;
         
       case 'option':
-        $cache[$vote->tag][$vote->value_type][$vote->value] = $cache[$vote->tag][$vote->value_type][$vote->value] + 1;
+        $cache[$vote->tag][$vote->value_type][$vote->value] += 1;
         break;
     }
   }
@@ -451,7 +451,7 @@ function _votingapi_recalculate_results($content_type, $content_id, $value_type 
 
 function votingapi_format_tag($vobj) {
   $vals = votingapi_invoke_votingapi($vobj, 'format', 'tag');
-  if (is_array($vals)) {
+  if (isset($vals[0])) {
     return $vals[0];
   } else {
     return ucfirst($vobj->tag);
@@ -460,7 +460,7 @@ function votingapi_format_tag($vobj) {
 
 function votingapi_format_value($vobj) {
   $vals = votingapi_invoke_votingapi($vobj, 'format', 'value');
-  if (is_array($vals)) {
+  if (isset($vals[0])) {
     return $vals[0];
   } else {
     return $vobj->value;
@@ -469,7 +469,7 @@ function votingapi_format_value($vobj) {
 
 function votingapi_format_result($vobj) {
   $vals = votingapi_invoke_votingapi($vobj, 'format', 'result');
-  if (is_array($vals)) {
+  if (isset($vals[0])) {
     return $vals[0];
   } else {
     return $vobj->value;
