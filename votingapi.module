@@ -454,7 +454,7 @@ function votingapi_format_tag($vobj) {
   if (is_array($vals)) {
     return $vals[0];
   } else {
-    return $vobj->tag;
+    return ucfirst($vobj->tag);
   }
 }
 
