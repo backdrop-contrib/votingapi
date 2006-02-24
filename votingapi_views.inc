@@ -38,9 +38,9 @@ function votingapi_views_tables() {
         'name' => "VotingAPI: Result type",
         'operator' => array("=" => "Is", "!=" => "Is Not"),
         'list' => array(
-          VOTINGAPI_VALUE_TYPE_PERCENT => 'Percentage',
-          VOTINGAPI_VALUE_TYPE_TOKEN => 'Points',
-          VOTINGAPI_VALUE_TYPE_KEY => 'Custom',
+          'percent' => 'Percentage',
+          'points' => 'Points',
+          'option' => 'Options',
         ),
         'list-type' => "select",
         'handler' => 'votingapi_views_nullable_field_handler',
@@ -132,9 +132,9 @@ function votingapi_views_tables() {
         'name' => "VotingAPI: Individual vote type",
         'operator' => array("=" => "Is", "!=" => "Is Not"),
         'list' => array(
-          VOTINGAPI_VALUE_TYPE_PERCENT => 'Percentage',
-          VOTINGAPI_VALUE_TYPE_TOKEN => 'Points',
-          VOTINGAPI_VALUE_TYPE_KEY => 'Custom',
+          'percent' => 'Percentage',
+          'points' => 'Points',
+          'option' => 'Custom',
         ),
         'list-type' => "select",
         'handler' => 'votingapi_views_nullable_field_handler',
@@ -262,14 +262,7 @@ function votingapi_views_value_display_handler($op, $filter, $value, &$query) {
   if (isset($q[$t . 'uid'])) {
     $vobj->uid = $q[$t . 'uid'];
   }
-  $result = votingapi_invoke_votingapi($vobj, 'format value');
-
-  if (isset($result[0])) {
-    return $result[0];
-  }
-  else {
-    return $value;
-  }
+  return votingapi_format_value($vobj);
 }
 
 function votingapi_views_tag_display_handler($op, $filter, $value, &$query) {
@@ -279,7 +272,7 @@ function votingapi_views_tag_display_handler($op, $filter, $value, &$query) {
   $t = $filter['tablename'] . "_";
   $q = (array)$query;
 
-  $vobj->value = check_plain($value);
+  $vobj->value =  $q[$t . 'value'];
   $vobj->value_type =  $q[$t . 'value_type'];
   $vobj->content_type = $q[$t . 'content_type'];
   $vobj->content_id = $q[$t . 'content_id'];
@@ -290,14 +283,7 @@ function votingapi_views_tag_display_handler($op, $filter, $value, &$query) {
   if (isset($q[$t . 'uid'])) {
     $vobj->uid = $q[$t . 'uid'];
   }
-  $result = votingapi_invoke_votingapi($vobj, 'format tag');
-
-  if (isset($result[0])) {
-    return $result[0];
-  }
-  else {
-    return $value;
-  }
+  return votingapi_format_tag($vobj);
 }
 
 

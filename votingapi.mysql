@@ -7,7 +7,7 @@ CREATE TABLE votingapi_vote (
   content_type varchar(20) default NULL,
   content_id int(10) unsigned default NULL,
   value float(10) default NULL,
-  value_type int(10) unsigned NOT NULL,
+  value_type varchar(20) NOT NULL,
   tag varchar(128) default 'vote',
   uid int(10) unsigned default '0',
   timestamp int(11) default NULL,
@@ -20,7 +20,7 @@ CREATE TABLE votingapi_cache (
   content_type varchar(20) default NULL,
   content_id int(10) unsigned default NULL,
   value float(10) default NULL,
-  value_type int(10) unsigned NOT NULL,
+  value_type varchar(20) NOT NULL,
   tag varchar(128) default 'vote',
   function varchar(128) default 'count',
   PRIMARY KEY  (vote_cache_id)
