@@ -16,7 +16,7 @@ function votingapi_install() {
   switch ($GLOBALS['db_type']) {
     case 'mysql':
     case 'mysqli':
-      db_query("CREATE TABLE votingapi_vote (
+      db_query("CREATE TABLE {votingapi_vote} (
           vote_id int(10) unsigned NOT NULL,
           content_type varchar(20) default NULL,
           content_id int(10) unsigned default NULL,
@@ -31,7 +31,7 @@ function votingapi_install() {
           KEY content_id (content_id)
          ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
 
-      db_query("CREATE TABLE votingapi_cache (
+      db_query("CREATE TABLE {votingapi_cache} (
           vote_cache_id int(10) unsigned NOT NULL,
           content_type varchar(20) default NULL,
           content_id int(10) unsigned default NULL,
@@ -60,7 +60,6 @@ function votingapi_update_1() {
  */
 function votingapi_update_2() {
   $ret = array();
-  _system_update_utf8(array('votingapi_vote', 'votingapi_cache'));
   switch ($GLOBALS['db_type']) {
     case 'mysql':
     case 'mysqli':
