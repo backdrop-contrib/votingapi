@@ -15,7 +15,7 @@ CREATE TABLE votingapi_vote (
   PRIMARY KEY  (vote_id),
   KEY content_type (content_type),
   KEY content_id (content_id)
- ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
+) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
  
 CREATE TABLE votingapi_cache (
   vote_cache_id int(10) unsigned NOT NULL,
@@ -28,4 +28,32 @@ CREATE TABLE votingapi_cache (
   PRIMARY KEY  (vote_cache_id),
   KEY content_type (content_type),
   KEY content_id (content_id)
- ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
+) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
+
+CREATE TABLE votingapi_action_set (
+  vasid int(10) unsigned NOT NULL,
+  parent int(10) unsigned NOT NULL,
+  required int(8) NOT NULL default '0',
+  mask varchar(8) default 'AND',
+  content_type varchar(128) default NULL,
+  name varchar(128) default NULL,
+  enabled int default 1,
+  source varchar(65) default NULL,
+  content_type varchar(64) default NULL,
+  weight int(10) NOT NULL default 0,
+  PRIMARY KEY  (vasid)
+) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
+
+CREATE TABLE votingapi_action_condition (
+  vacid int(10) unsigned NOT NULL,
+  vasid int(10) unsigned NOT NULL,
+  weight int(10) NOT NULL default 0,
+  value varchar(255),
+  handler varchar(255) NOT NULL,
+  PRIMARY KEY  (vacid)
+) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
+
+CREATE TABLE votingapi_action (
+  vasid int(10) unsigned NOT NULL,
+  aid varchar(255) NOT NULL default '0'
+) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;
