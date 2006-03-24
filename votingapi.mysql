@@ -35,7 +35,6 @@ CREATE TABLE votingapi_action_set (
   parent int(10) unsigned NOT NULL,
   required int(8) NOT NULL default '0',
   mask varchar(8) default 'AND',
-  content_type varchar(128) default NULL,
   name varchar(128) default NULL,
   enabled int default 1,
   source varchar(65) default NULL,
