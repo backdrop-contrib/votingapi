@@ -49,11 +49,10 @@ function votingapi_install() {
            parent int(10) unsigned NOT NULL,
            required int(8) NOT NULL default '0',
            mask varchar(8) default 'AND',
-           content_type varchar(128) default NULL,
+           content_type varchar(20) default NULL,
            name varchar(128) default NULL,
            enabled int default 1,
            source varchar(65) default NULL,
-           content_type varchar(64) default NULL,
            weight int(10) NOT NULL default 0,
            PRIMARY KEY  (vasid)
          ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
@@ -143,11 +142,10 @@ function votingapi_update_4() {
            parent int(10) unsigned NOT NULL,
            required int(8) NOT NULL default '0',
            mask varchar(8) default 'AND',
-           content_type varchar(128) default NULL,
+           content_type varchar(20) default NULL,
            name varchar(128) default NULL,
            enabled int default 1,
            source varchar(65) default NULL,
-           content_type varchar(64) default NULL,
            weight int(10) NOT NULL default 0,
            PRIMARY KEY  (vasid)
          ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
