@@ -127,7 +127,7 @@ function votingapi_update_3() {
 }
 
 /**
- * INitial work to roll Voting Actions functionality into Voting API.
+ * Initial work to roll Voting Actions functionality into Voting API.
  */
 
 function votingapi_update_4() {
@@ -148,7 +148,7 @@ function votingapi_update_4() {
            PRIMARY KEY  (vasid)
          ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
 
-      $ret[] = db_query("CREATE TABLE votingapi_action_condition (
+      $ret[] = db_query("CREATE TABLE {votingapi_action_condition} (
           vacid int(10) unsigned NOT NULL,
           vasid int(10) unsigned NOT NULL,
           weight int(10) NOT NULL default 0,
@@ -157,7 +157,7 @@ function votingapi_update_4() {
           PRIMARY KEY  (vacid)
         ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
 
-      $ret[] = db_query("CREATE TABLE votingapi_action (
+      $ret[] = db_query("CREATE TABLE {votingapi_action} (
           vasid int(10) unsigned NOT NULL,
           aid varchar(255) NOT NULL default '0'
         ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
@@ -179,6 +179,8 @@ function votingapi_update_5() {
     case 'mysqli':
       $ret[] = db_query("ALTER TABLE {votingapi_vote} ADD INDEX content (content_type, content_id);");
       $ret[] = db_query("ALTER TABLE {votingapi_cache} ADD INDEX content (content_type, content_id);");
+      $ret[] = db_query("UPDATE {sequences} SET name = '{votingapi_cache}' WHERE name = 'votingapi_cache';");
+      $ret[] = db_query("UPDATE {sequences} SET name = '{votingapi_vote}' WHERE name = 'votingapi_vote';");
       break;
   }
 
