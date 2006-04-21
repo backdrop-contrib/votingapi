@@ -75,14 +75,14 @@ function votingapi_set_vote($content_type, $content_id, $vote, $uid = NULL, $rec
 
     $result = db_query("SELECT * FROM {votingapi_vote} WHERE content_type='%s' AND content_id=%d AND tag='%s' AND value_type='%s' AND uid=%d", $content_type, $content_id, $vote->tag, $vote->value_type, $uid);
     while ($vobj = db_fetch_object($result)) {
-      _votingapi_change_vote($vobj, $vote->value);
+      votingapi_change_vote($vobj, $vote->value);
       $exists = TRUE;
     }
     if (!$exists) {
-      _votingapi_add_vote($content_type, $content_id, $vote->value, $vote->value_type, $vote->tag);
+      votingapi_add_vote($content_type, $content_id, $vote->value, $vote->value_type, $vote->tag, $uid);
     }
   }
-  
+
   if ($recursion) {
     return $vobj;
   }
@@ -116,7 +116,7 @@ function votingapi_set_vote($content_type, $content_id, $vote, $uid = NULL, $rec
  * @return
  *   The $vote object cast.
  */
-function _votingapi_add_vote($content_type, $content_id, $value, $value_type = VOTINGAPI_VALUE_DEFAULT_TYPE, $tag = VOTINGAPI_VALUE_DEFAULT_TAG, $uid = NULL) {
+function votingapi_add_vote($content_type, $content_id, $value, $value_type = VOTINGAPI_VALUE_DEFAULT_TYPE, $tag = VOTINGAPI_VALUE_DEFAULT_TAG, $uid = NULL) {
   if ($uid == NULL) {
     global $user;
     $uid = $user->uid;
@@ -157,7 +157,7 @@ function _votingapi_add_vote($content_type, $content_id, $value, $value_type = V
  * @return
  *   The $new version of the vote object.
  */
-function _votingapi_change_vote($vobj, $value) {
+function votingapi_change_vote($vobj, $value) {
   db_query("UPDATE {votingapi_vote} SET value=%f WHERE vote_id=%d", $value, $vobj->vote_id);
   
   // Give other modules a chance to respond to the change.
