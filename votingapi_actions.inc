@@ -32,7 +32,7 @@ function _votingapi_load_content($content_id = 0, $content_id = 'node') {
 // Other helper functions build the actions cache from the database.
 
 function _votingapi_process_actions($content_id, $content_type, $votes, $results) {
-  $data = cache_get('votingapi_actions');
+  $data = cache_get('votingapi_action_sets');
   $action_sets = unserialize($data->data);
 
   $content = _votingapi_load_content($content_type, $content_id);
@@ -215,4 +215,57 @@ function votingapi_vote_result_handler($op, $content, $votes, $results, $rule) {
     
     return $passed;
   }
+}
+
+// Builds the cached collection of action sets.
+
+function _votingapi_cache_actions() {
+  $module_sets = _votingapi_load_action_sets_from_modules();
+  $db_sets = _votingapi_load_action_sets_from_db();
+  
+  foreach($db_sets as $set) {
+    if ($set->enabled) {
+      $active_sets[$set->name] = $set;
+    }
+  }  
+  foreach($module_sets as $set) {
+    // as long as active_sets doesn't already contain it,
+    // add the module set.
+  }
+
+  cache_set("votingapi_action_sets", serialize($active_sets));
+}
+
+
+function _votingapi_load_action_sets_from_db($parent = NULL) {
+  if ($parent == NULL) {
+    $result = db_query('SELECT * FROM {votingapi_action_set} WHERE enabled = 1 AND parent IS NULL ORDER BY weight, name ASC');   
+  }
+  else {
+    $result = db_query('SELECT * FROM {votingapi_action_set} WHERE enabled = 1 AND parent = %d ORDER BY weight, name ASC', $pid);   
+  }
+  while ($set = db_fetch_object($result)) {
+    $condition_result = db_query('SELECT * FROM {votingapi_action_set} WHERE vasid = %d ORDER BY weight ASC');
+    while ($condition = db_fetch_object($condition_result)) {
+      $set->conditions[] = $condition;
+    }
+
+    $action_result = db_query('SELECT * FROM {votingapi_action_set} WHERE vasid = %d ORDER BY aid ASC');
+    while ($action = db_fetch_object($action_result)) {
+      $set->actions[] = $action;
+    }
+    
+    $set->subsets = _votingapi_load_action_sets_from_parent($set->vasid);
+    $sets[$set->name] = $set;
+  }
+  
+  return $sets;
+}
+
+function _votingapi_load_action_sets_from_modules() {
+  $set_data = module_invoke_all('votingapi_action_sets');
+  foreach ($set_data as $name => $set) {
+    $sets[$name] = $set;
+  }
+  return $sets;
 }
