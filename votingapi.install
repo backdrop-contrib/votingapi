@@ -169,7 +169,7 @@ function votingapi_update_4() {
 }
 
 /**
- * Rolled Voting Actions functionality into Voting API.
+ * Fixed index definition, corrected table prefixes.
  */
 
 function votingapi_update_5() {
@@ -179,6 +179,11 @@ function votingapi_update_5() {
     case 'mysqli':
       $ret[] = db_query("ALTER TABLE {votingapi_vote} ADD INDEX content (content_type, content_id);");
       $ret[] = db_query("ALTER TABLE {votingapi_cache} ADD INDEX content (content_type, content_id);");
+
+      $ret[] = db_query("ALTER TABLE {votingapi_vote} DROP INDEX content_type;");
+      $ret[] = db_query("ALTER TABLE {votingapi_vote} DROP INDEX content_id;");
+      $ret[] = db_query("ALTER TABLE {votingapi_cache} DROP INDEX content_type;");
+      $ret[] = db_query("ALTER TABLE {votingapi_cache} DROP INDEX content_id;");
 
       $ret[] = db_query("RENAME TABLE votingapi_action_condition TO {votingapi_action_condition};");
       $ret[] = db_query("RENAME TABLE votingapi_action TO {votingapi_action};");
