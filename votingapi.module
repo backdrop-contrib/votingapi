@@ -16,6 +16,9 @@ define('VOTINGAPI_VALUE_DEFAULT_TYPE', 'percent');
 if (module_exist('views')) {
   include_once('votingapi_views.inc');
 }
+if (module_exist('actions')) {
+  include_once('votingapi_actions.inc');
+}
 
 /**
  * Implementation of hook_help().
@@ -443,6 +446,12 @@ function _votingapi_recalculate_results($content_type, $content_id, $value_type 
   // Give other modules a chance to act on the results of the vote totaling.
   votingapi_invoke_votingapi($cached, 'post calculate', $votes, $content_type, $content_id);
 
+  // If the actions module is enabled, hand off the voting results
+  // for possible node promotion, user banning, or what not.
+  if (module_exist('actions')) {
+    _votingapi_process_actions($content_id, $content_type, $votes, $cached);
+  }
+
   return $cached;
 }
 
@@ -545,4 +554,34 @@ function votingapi_invoke_votingapi(&$vote, $op, $a3=NULL, $a4=NULL, $a5=NULL) {
     }
   }
   return $return;
+}
+
+/**
+ * A helper function that loads content from type/id pairs.
+ *
+ * @param $content_type
+ *   The content type to be loaded. node, comment, aggregator-item, and user are
+ *   supported.
+ * @param $content_id
+ *   The key id of the content to be loaded.
+ * @return
+ *   The loaded content type.
+ */
+function _votingapi_load_content($content_id = 0, $content_type = 'node') {
+  switch ($content_type) {
+    case 'node':
+      $content = node_load($content_id);
+      break;
+    case 'comment':
+      $content = _comment_load($content_id);
+      break;
+    case 'aggregator-item':
+      $result = db_query('SELECT * FROM {aggregator_item} WHERE iid = %d', $content_id);
+      $content = db_fetch_object($result);
+      break;
+    case 'user':
+      $content = user_load(array('uid' => $content_id));
+      break;
+  }
+  return $content;
 }
