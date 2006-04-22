@@ -262,7 +262,6 @@ function votingapi_vote_result_handler($op, $content, $votes, $results, $rule) {
       
       // if we get this far, one of the result records has passed successfully.
       $passed = TRUE;
-      drupal_set_message('votingapi_vote_result_handler returning true');
       break;
     }
     
