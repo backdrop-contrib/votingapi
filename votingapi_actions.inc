@@ -3,21 +3,49 @@
 
 // Builds the cached collection of action sets.
 
+function _votingapi_get_all_actions() {
+  $sets = array();
+  $data = cache_get('votingapi_action_sets');
+  $action_sets = unserialize($data->data);
+
+  foreach ($action_sets as $key => $set) {
+    if ($set['enabled'] == TRUE) {
+      $sets[$key] = $set['name'] . ' (' . $set['source'] . ')';
+    }
+  }
+  
+  return $sets;
+}
+
+function _votingapi_get_enabled_actions() {
+  $sets = array();
+  $data = cache_get('votingapi_action_sets');
+  $action_sets = unserialize($data->data);
+
+  foreach ($action_sets as $key => $set) {
+    if ($set['enabled'] == TRUE) {
+      $sets[] = $key;
+    }
+  }
+  
+  return $sets;
+}
+
 function _votingapi_cache_actions() {
   $module_sets = _votingapi_load_action_sets_from_modules();
   $db_sets = _votingapi_load_action_sets_from_db();
   $active_sets = array();
   
   foreach($db_sets as $set) {
-    if ($set->enabled) {
-      $active_sets[$set->name] = $set;
+    if ($set['enabled']) {
+      $active_sets[$set['name']] = $set;
     }
   }  
   foreach($module_sets as $set) {
     // as long as active_sets doesn't already contain it,
     // add the module set.
-    if (!in_array($set->name, array_keys($active_sets))) {
-      $active_sets[$set->name] = $set;
+    if (!in_array($set['name'], array_keys($active_sets))) {
+      $active_sets[$set['name']] = $set;
     }
   }
 
@@ -33,19 +61,19 @@ function _votingapi_load_action_sets_from_db($parent = NULL) {
   else {
     $result = db_query('SELECT * FROM {votingapi_action_set} WHERE enabled = 1 AND parent = %d ORDER BY weight, name ASC', $pid);   
   }
-  while ($set = db_fetch_object($result)) {
+  while ($set = db_fetch_array($result)) {
     $condition_result = db_query('SELECT * FROM {votingapi_action_set} WHERE vasid = %d ORDER BY weight ASC');
-    while ($condition = db_fetch_object($condition_result)) {
+    while ($condition = db_fetch_array($condition_result)) {
       $set->conditions[] = $condition;
     }
 
     $action_result = db_query('SELECT * FROM {votingapi_action_set} WHERE vasid = %d ORDER BY aid ASC');
-    while ($action = db_fetch_object($action_result)) {
+    while ($action = db_fetch_array($action_result)) {
       $set->actions[] = $action;
     }
     
-    $set->subsets = _votingapi_load_action_sets_from_parent($set->vasid);
-    $sets[$set->name] = $set;
+    $set->subsets = _votingapi_load_action_sets_from_parent($set['vasid']);
+    $sets[$set['name']] = $set;
   }
   
   return $sets;
@@ -97,14 +125,14 @@ function _votingapi_process_actions($content_id, $content_type, $votes, $results
 
 function _votingapi_process_action_set($content = NULL, $votes = array(), $results = array(), $action_set = NULL, &$actions) {
   // a little safety code to catch malformed sets.
-  if (!isset($action_set->conditions)) {
-    $action_set->conditions = array();
+  if (!isset($action_set['conditions'])) {
+    $action_set['conditions'] = array();
   }
-  if (!isset($action_set->actions)) {
-    $action_set->actions = array();
+  if (!isset($action_set['actions'])) {
+    $action_set['actions'] = array();
   }
-  if (!isset($action_set->subsets)) {
-    $action_set->subsets = array();
+  if (!isset($action_set['subsets'])) {
+    $action_set['subsets'] = array();
   }
 
   // Here, we iterate through every rule. The value starts as true,
@@ -118,7 +146,7 @@ function _votingapi_process_action_set($content = NULL, $votes = array(), $resul
     else {
       $conditions_result = FALSE;
     }
-    if ($action_set->mask == 'AND') {
+    if ($action_set['mask'] == 'AND') {
       if ($conditions_result === FALSE) {
         // bail out to avoid unecessary processing.
         return FALSE;
@@ -133,7 +161,7 @@ function _votingapi_process_action_set($content = NULL, $votes = array(), $resul
         }
       }
     }
-    else if ($action_set->mask == 'OR') {
+    else if ($action_set['mask'] == 'OR') {
       // OR the set result and rule result together.
       $set_result = $set_result || $conditions_result;
     }
@@ -142,9 +170,9 @@ function _votingapi_process_action_set($content = NULL, $votes = array(), $resul
   if ($set_result == TRUE) {
     // Now check sub-actions.
 
-    foreach($action_set->subsets as $subset) {
+    foreach($action_set['subsets'] as $subset) {
       // check the required flag of the subset. if it is, evaluate it.
-      if ($subset->required == TRUE) {
+      if ($subset['required'] == TRUE) {
         $set_result = $set_result && _votingapi_process_action_set($content, $votes, $results, $subset, $actions);
         if ($set_result == FALSE) {
           return FALSE;
@@ -154,13 +182,13 @@ function _votingapi_process_action_set($content = NULL, $votes = array(), $resul
 
     if ($set_result == TRUE) {
       // It's still true after executing required subsets. Add the actions, then process optional subsets.
-      foreach ($action_set->actions as $action) {
+      foreach ($action_set['actions'] as $action) {
         $actions[] = $action;
       }
       
-      foreach($action_set->subsets as $subset) {
+      foreach($action_set['subsets'] as $subset) {
         // now handle the non-required subsets
-        if ($subset->required == FALSE) {
+        if ($subset['required'] == FALSE) {
           _votingapi_process_action_set($content, $votes, $results, $subset, $actions);
         }
       }
@@ -173,14 +201,16 @@ function _votingapi_process_action_set($content = NULL, $votes = array(), $resul
 
 function votingapi_vote_result_handler($op, $content, $votes, $results, $rule) {
   if ($op == 'process') {
-    //  for this handler, $rule->value is a serialized array in the following format:
+    //  for this handler, $rule->value is an array in the following format:
     //
-    //    $value->value_types = array('percent');   // an array of 1-n value types.
-    //    $value->tags = array('vote');             // an array of 1-n tags
-    //    $value->function = 'average';             // a single aggregate function
-    //    $value->value = array(                    // an array of key/value pairs indicating
-    //      '<' => '90',                            //   the operator and comparison value
-    //      '>=' => '70',                           //   to match incoming results to.
+    //    $value = array(
+    //      'value_types' => array('percent'),   // an array of 1-n value types.
+    //      'tags' => array('vote'),             // an array of 1-n tags
+    //      'function' => 'average',             // a single aggregate function
+    //      'value' = array(                     // an array of key/value pairs indicating
+    //        '<' => '90',                       //   the operator and comparison value
+    //        '>=' => '70',                      //   to match incoming results to.
+    //      ),
     //    );
     //
     //  In the example above, any aggregate vote result in which a piece of content receives an 
@@ -194,13 +224,13 @@ function votingapi_vote_result_handler($op, $content, $votes, $results, $rule) {
     // loop through all the result objects and see if there's one that satisfies all the conditions.
     foreach ($results as $result) {
       if (isset($value->value_types)) {
-        if (!in_array($result->value_type, $value->value_types)) {
+        if ($result->value_type != $value->value_type) {
           continue;
         }
       }
   
       if (isset($value->tags)) {
-        if (!in_array($result->tag, $value->tags)) {
+        if ($result->tag != $value->tag) {
           continue;
         }
       }
@@ -269,6 +299,46 @@ function votingapi_vote_result_handler($op, $content, $votes, $results, $rule) {
   }
 }
 
+function votingapi_node_properties_handler($op, $content, $votes, $results, $rule) {
+  if ($op == 'process') {
+    //  for this handler, $rule->value is a keyed array of comaprisons by node property name:
+    //
+    //  $rule->value = array(
+    //    'status' => array('==' => 1),   // must be published
+    //    'uid' => array('!=' => 1),      // not authored by the admin account
+    //  );
+    //
+    //  The keys in the sub-array are comparison operators, and the values are the value to
+    //  compare to. This is mainly useful for ensuring that a node hasn't yet been promoted
+    //  before promoting it, etc. At present only == and != are supported by this handler.
+  
+    $properties = $rule->value;
+    $passed = FALSE;
+
+    // loop through all the result objects and see if there's one that satisfies all the conditions.
+    foreach ($properties as $property => $comparison) {
+      foreach ($comparison as $c_op => $c_val) {          
+        switch ($c_op) {
+          case '==' :
+            if (!($content->$property == $c_val)) {
+              continue 3;
+            }
+            break;
+
+          case '!=' :
+            if (!($content->$property != $c_val)) {
+              continue 3;
+            }
+            break;
+        }
+      }
+      // if we get this far, one of the result records has passed successfully.
+      $passed = TRUE;
+    }
+
+    return $passed;
+  }
+}
 
 /*********************************************
  *  VOTINGAPI IMPLEMENTED ACTIONS. SHOULD

@@ -1,7 +1,6 @@
 <?php
 /* $Id */
 
-
 function votingapi_views_tables() {
   $tables["votingapi_cache"] = array(
     "name" => "votingapi_cache", 
@@ -23,6 +22,8 @@ function votingapi_views_tables() {
         'name' => t("VotingAPI: Voting results"),
         'sortable' => true,
         'handler' => 'votingapi_views_value_display_handler',
+        'query_handler' => 'votingapi_views_value_query_handler',
+        'option' => array('#type' => 'vote_cache_properties'),
         'addlfields' => array('value_type', 'tag', 'function', 'content_type', 'content_id'),
       ),
       "tag" => array(
@@ -51,7 +52,7 @@ function votingapi_views_tables() {
       "tag" => array(
         'name' => "VotingAPI: Result tag",
         'operator' => array("=" => "Is", "!=" => "Is Not"),
-        'list' => "votingapi_handler_cache_vote_tags",
+        'list' => "votingapi_cache_tags",
         'list-type' => "select",
         'handler' => 'votingapi_views_nullable_field_handler',
         'help' => "Filter by the tag being voted on",
@@ -59,7 +60,7 @@ function votingapi_views_tables() {
       "function" => array(
         'name' => "VotingAPI: Result function",
         'operator' => array("=" => "Is", "!=" => "Is Not"),
-        'list' => "votingapi_handler_cache_vote_functions",
+        'list' => "votingapi_cache_functions",
         'list-type' => "select",
         'handler' => 'votingapi_views_nullable_field_handler',
         'help' => "Filter by the function used to aggregate results (total number of votes, average vote, etc)",
@@ -94,9 +95,10 @@ function votingapi_views_tables() {
       "value" => array(
         'name' => t("VotingAPI: Individual vote value"),
         'sortable' => true,
+        'query_handler' => 'votingapi_views_value_query_handler',
         'handler' => 'votingapi_views_value_display_handler',
+        'option' => array('#type' => 'vote_properties'),
         'sortable' => true,
-        'addlfields' => array('value_type', 'tag', 'uid', 'content_type', 'content_id'),
       ),
       "tag" => array(
         'name' => t("VotingAPI: Individual vote tag"),
@@ -145,7 +147,7 @@ function votingapi_views_tables() {
       "tag" => array(
         'name' => "VotingAPI: Individual vote tag",
         'operator' => array("=" => "Is", "!=" => "Is Not"),
-        'list' => "votingapi_handler_vote_tags",
+        'list' => "votingapi_vote_tags",
         'list-type' => "select",
         'handler' => 'votingapi_views_nullable_field_handler',
         'help' => "Filter by the tag being voted on",
@@ -172,55 +174,18 @@ function votingapi_views_tables() {
   return $tables;
 }
 
-function votingapi_handler_cache_vote_functions() {
-  static $votingapi_cache_functions;
-  if (!is_array($votingapi_cache_functions)) {
-    $votingapi_cache_functions = array();
-    $votingapi_cache_functions = array(
-      'sum' => 'Sum of vote values',
-      'count' => 'Number of votes',
-      'average' => 'Average vote value',
-    );
-
-    $result = db_query('SELECT DISTINCT function FROM {votingapi_cache}');
-    while ($fnc = db_fetch_object($result)) {
-      if (!isset($votingapi_cache_functions[$fnc->function])) {
-        $votingapi_cache_functions[$fnc->function] = $fnc->function;
+function votingapi_views_value_query_handler($field, $fieldinfo, &$query) {
+  $table = $field['tablename'];
+  
+  if (is_string($field['options'])) {
+    $options = unserialize($field['options']);
+    if (is_array($options)) {
+      foreach ($options as $column => $value) {
+        $query->add_where("$table.$column = '$value'");
       }
     }
   }
-  return $votingapi_cache_functions;
 }
-
-function votingapi_handler_cache_vote_tags() {
-  static $votingapi_cache_tags;
-  if (!is_array($votingapi_cache_tags)) {
-    $votingapi_cache_tags = array();
-    $votingapi_cache_tags = array(VOTINGAPI_VALUE_DEFAULT_TAG => '-- Default tag --');
-    $result = db_query('SELECT DISTINCT tag FROM {votingapi_cache}');
-    while ($fnc = db_fetch_object($result)) {
-      if (!isset($votingapi_cache_tags[$fnc->tag])) {
-        $votingapi_cache_tags[$fnc->tag] = $fnc->tag;
-      }
-    }
-  }
-  return $votingapi_cache_tags;
-}
-
-function votingapi_handler_vote_tags() {
-  static $votingapi_vote_tags;
-  if (!is_array($votingapi_vote_tags)) {
-    $votingapi_vote_tags = array(VOTINGAPI_VALUE_DEFAULT_TAG => '-- Default tag --');
-    $result = db_query('SELECT DISTINCT tag FROM {votingapi_vote}');
-    while ($fnc = db_fetch_object($result)) {
-      if (!isset($votingapi_cache_tags[$fnc->tag])) {
-        $votingapi_vote_tags[$fnc->tag] = $fnc->tag;
-      }
-    }
-  }
-  return $votingapi_vote_tags;
-}
-
 
 function votingapi_views_handler_filter_uid_has_voted($op, $filter, $filterinfo, &$query) {
   $query->add_where("votingapi_vote.uid = '%s'", $filter['value']);
@@ -454,3 +419,4 @@ function votingapi_views_default_views() {
 
   return $views;
 }
+
