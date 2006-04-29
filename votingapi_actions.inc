@@ -102,6 +102,10 @@ function _votingapi_process_actions($content_id, $content_type, $votes, $results
   $data = cache_get('votingapi_action_sets');
   $action_sets = unserialize($data->data);
 
+  if (!is_array($action_sets)) {
+    return;
+  }
+
   $content = _votingapi_load_content($content_id, $content_type);
   if ($content == NULL) {
     return;
