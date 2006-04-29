@@ -2,16 +2,6 @@
 
 // $Id
 
-/**
- * Implementation of hook_version().
- */
-function votingapi_version($type) {
-  switch ($type) {
-    case SCHEMA:
-      return 2;
-  }
-}
-
 function votingapi_install() {
   switch ($GLOBALS['db_type']) {
     case 'mysql':
@@ -49,6 +39,7 @@ function votingapi_install() {
            mask varchar(8) default 'AND',
            content_type varchar(20) default NULL,
            name varchar(128) default NULL,
+           description varchar(255) default NULL,
            enabled int default 1,
            source varchar(65) default NULL,
            weight int(10) NOT NULL default 0,
@@ -58,8 +49,9 @@ function votingapi_install() {
       db_query("CREATE TABLE {votingapi_action_condition} (
           vacid int(10) unsigned NOT NULL,
           vasid int(10) unsigned NOT NULL,
+          name varchar(128) default NULL,
           weight int(10) NOT NULL default 0,
-          value varchar(255),
+          data varchar(255),
           handler varchar(255) NOT NULL,
           PRIMARY KEY  (vacid)
         ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
@@ -195,4 +187,19 @@ function votingapi_update_5() {
   }
 
   return $ret;
+}
+
+function votingapi_update_6() {
+  $ret = array();
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("ALTER TABLE {votingapi_action_condition} ADD COLUMN name varchar(128) NOT NULL;");
+      $ret[] = update_sql("ALTER TABLE {votingapi_action_condition} CHANGE value data varchar(255)");
+      $ret[] = update_sql("ALTER TABLE {votingapi_action_set} ADD COLUMN description varchar(255) NOT NULL;");
+      break;
+  }
+
+  return $ret;
+
 }

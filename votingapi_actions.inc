@@ -201,15 +201,13 @@ function _votingapi_process_action_set($content = NULL, $votes = array(), $resul
 
 function votingapi_vote_result_handler($op, $content, $votes, $results, $rule) {
   if ($op == 'process') {
-    //  for this handler, $rule->value is an array in the following format:
+    //  for this handler, $rule->data is an array in the following format:
     //
     //    $value = array(
-    //      'value_types' => array('percent'),   // an array of 1-n value types.
-    //      'tags' => array('vote'),             // an array of 1-n tags
-    //      'function' => 'average',             // a single aggregate function
-    //      'value' = array(                     // an array of key/value pairs indicating
-    //        '<' => '90',                       //   the operator and comparison value
-    //        '>=' => '70',                      //   to match incoming results to.
+    //      'value_type' => 'percent',   // an array of 1-n value types.
+    //      'tag' => 'vote',             // an array of 1-n tags
+    //      'comparison' = '<',                  // the comparison operator
+    //      'value' => '90',                     // the value to be compared
     //      ),
     //    );
     //
@@ -218,78 +216,181 @@ function votingapi_vote_result_handler($op, $content, $votes, $results, $rule) {
     //  will change based on the specific action. If one of the above values is NOT specified
     //  it will be skipped. 
   
-    $value = (object)$rule->value;
+    $data = (object)$rule->data;
     $passed = FALSE;
     
     // loop through all the result objects and see if there's one that satisfies all the conditions.
     foreach ($results as $result) {
-      if (isset($value->value_types)) {
-        if ($result->value_type != $value->value_type) {
+      if (isset($data->value_type)) {
+        if ($result->value_type != $data->value_type) {
           continue;
         }
       }
   
-      if (isset($value->tags)) {
-        if ($result->tag != $value->tag) {
+      if (isset($data->tag)) {
+        if ($result->tag != $data->tag) {
           continue;
         }
       }
       
-      if (isset($value->function)) {
-        if ($result->function != $value->function) {
+      if (isset($data->function)) {
+        if ($result->function != $data->function) {
           continue;
         }
       }
-    
-      if (isset($value->value)) {
-        foreach($value->value as $c_op => $c_val) {
-          
-          // sadly, this probably doesn't work.
-          // if (!($result->value $c_op $c_val) {
-          //   continue 2;
-          // }
-          
-          switch ($c_op) {
-            case '<' :
-              if (!($result->value < $c_val)) {
-                continue 2;
-              }
-              break;
 
-            case '<=' :
-              if (!($result->value <= $c_val)) {
-                continue 2;
-              }
-              break;
-
-            case '==' :
-              if (!($result->value == $c_val)) {
-                continue 2;
-              }
-              break;
-
-            case '!=' :
-              if (!($result->value != $c_val)) {
-                continue 2;
-              }
-              break;
-
-            case '>=' :
-              if (!($result->value >= $c_val)) {
-                continue 2;
-              }
-
-              break;
-
-            case '>' :
-              if (!($result->value > $c_val)) {
-                continue 2;
-              }
-              break;
+      switch ($data->comparison) {
+        case '<' :
+          if (!($result->value < $data->value)) {
+            continue;
           }
+          break;
+
+        case '<=' :
+          if (!($result->value <= $data->value)) {
+            continue;
+          }
+          break;
+
+        case '==' :
+          if (!($result->value == $data->value)) {
+            continue;
+          }
+          break;
+
+        case '!=' :
+          if (!($result->value != $data->value)) {
+            continue;
+          }
+          break;
+
+        case '>=' :
+          if (!($result->value >= $data->value)) {
+            continue;
+          }
+
+          break;
+
+        case '>' :
+          if (!($result->value > $data->value)) {
+            continue;
+          }
+          break;
+      }
+
+      // if we get this far, one of the result records has passed successfully.
+      $passed = TRUE;
+      break;
+    }
+
+    return $passed;
+  }
+  else if ($op == 'form') {
+    $form['value_type'] = array(
+      '#type' => 'select',
+      '#options' => votingapi_cache_value_types(),
+    );
+  
+    $form['tag'] = array(
+      '#type' => 'select',
+      '#options' => votingapi_cache_tags(),
+    );
+  
+    $form['function'] = array(
+      '#type' => 'select',
+      '#options' => votingapi_cache_functions(),
+    );
+    $form['comparison'] = array(
+      '#type' => 'select',
+      '#options' => array('==' => 'Is', '!=' => 'Is not', '<' => 'Is less than', '>' => 'Is greater than'),
+    );
+    $form['value'] = array(
+      '#type' => 'textfield',
+      '#maxlength' => 10,
+    );
+    
+    return $form;
+  }
+  else if ($op == 'name') {
+    return array('votingapi_vote_result_handler' => 'Vote result properties');
+  }
+}
+
+
+function votingapi_vote_handler($op, $content, $votes, $results, $rule) {
+  if ($op == 'process') {
+    //  for this handler, $rule->data is an array in the following format:
+    //
+    //    $value = array(
+    //      'value_type' => 'percent',   // an array of 1-n value types.
+    //      'tag' => 'vote',             // an array of 1-n tags
+    //      'function' => 'average',             // a single aggregate function
+    //      'comparison' = '<',                  // the comparison operator
+    //      'value' => '90',                     // the value to be compared
+    //      ),
+    //    );
+    //
+    //  In the example above, any aggregate vote result in which a piece of content receives an 
+    //  average percentage vote between 75% and 90% would match. Obviously, the specific values
+    //  will change based on the specific action. If one of the above values is NOT specified
+    //  it will be skipped. 
+  
+    $data = (object)$rule->data;
+    $passed = FALSE;
+    
+    // loop through all the result objects and see if there's one that satisfies all the conditions.
+    foreach ($results as $result) {
+      if (isset($data->value_type)) {
+        if ($result->value_type != $data->value_type) {
+          continue;
         }
       }
-      
+  
+      if (isset($value->tag)) {
+        if ($data->tag != $data->tag) {
+          continue;
+        }
+      }
+
+      switch ($data->comparison) {
+        case '<' :
+          if (!($result->value < $data->value)) {
+            continue;
+          }
+          break;
+
+        case '<=' :
+          if (!($result->value <= $data->value)) {
+            continue;
+          }
+          break;
+
+        case '==' :
+          if (!($result->value == $data->value)) {
+            continue;
+          }
+          break;
+
+        case '!=' :
+          if (!($result->value != $data->value)) {
+            continue;
+          }
+          break;
+
+        case '>=' :
+          if (!($result->value >= $data->value)) {
+            continue;
+          }
+
+          break;
+
+        case '>' :
+          if (!($result->value > $data->value)) {
+            continue;
+          }
+          break;
+      }
+
       // if we get this far, one of the result records has passed successfully.
       $passed = TRUE;
       break;
@@ -297,13 +398,38 @@ function votingapi_vote_result_handler($op, $content, $votes, $results, $rule) {
     
     return $passed;
   }
+  else if ($op == 'form') {
+    $form['value_type'] = array(
+      '#type' => 'select',
+      '#options' => votingapi_vote_value_types(),
+    );
+  
+    $form['tag'] = array(
+      '#type' => 'select',
+      '#options' => votingapi_vote_tags(),
+    );
+  
+    $form['comparison'] = array(
+      '#type' => 'select',
+      '#options' => array('==' => 'Is', '!=' => 'Is not', '<' => 'Is less than', '>' => 'Is greater than'),
+    );
+    $form['value'] = array(
+      '#type' => 'textfield',
+      '#maxlength' => 10,
+    );
+    
+    return $form;
+  }
+  else if ($op == 'name') {
+    return array('votingapi_vote_handler' => 'Individual vote properties');
+  }
 }
 
-function votingapi_node_properties_handler($op, $content, $votes, $results, $rule) {
+function votingapi_node_properties_handler($op, $content = NULL, $votes = NULL, $results = NULL, $rule = NULL) {
   if ($op == 'process') {
-    //  for this handler, $rule->value is a keyed array of comaprisons by node property name:
+    //  for this handler, $rule->data is a keyed array of comaprisons by node property name:
     //
-    //  $rule->value = array(
+    //  $rule->data = array(
     //    'status' => array('==' => 1),   // must be published
     //    'uid' => array('!=' => 1),      // not authored by the admin account
     //  );
@@ -312,31 +438,44 @@ function votingapi_node_properties_handler($op, $content, $votes, $results, $rul
     //  compare to. This is mainly useful for ensuring that a node hasn't yet been promoted
     //  before promoting it, etc. At present only == and != are supported by this handler.
   
-    $properties = $rule->value;
-    $passed = FALSE;
+    $property = $rule->data['property'];
+    $comparison = $rule->data['comparison'];
+    $value = $rule->data['value'];;
 
-    // loop through all the result objects and see if there's one that satisfies all the conditions.
-    foreach ($properties as $property => $comparison) {
-      foreach ($comparison as $c_op => $c_val) {          
-        switch ($c_op) {
-          case '==' :
-            if (!($content->$property == $c_val)) {
-              continue 3;
-            }
-            break;
-
-          case '!=' :
-            if (!($content->$property != $c_val)) {
-              continue 3;
-            }
-            break;
+    switch ($comparison) {
+      case '==' :
+        if (!($content->$property == $value)) {
+          return FALSE;
         }
-      }
-      // if we get this far, one of the result records has passed successfully.
-      $passed = TRUE;
+        break;
+
+      case '!=' :
+        if (!($content->$property != $value)) {
+          return FALSE;
+        }
+        break;
     }
 
-    return $passed;
+    return TRUE;
+  }
+  else if ($op == 'form') {
+    $form['property'] = array(
+      '#type' => 'textfield',
+      '#maxlength' => 10,
+    );
+    $form['comparison'] = array(
+      '#type' => 'select',
+      '#options' => array('==' => 'Is', '!=' => 'Is not'),
+    );
+    $form['value'] = array(
+      '#type' => 'textfield',
+      '#maxlength' => 10,
+    );
+    
+    return $form;
+  }
+  else if ($op == 'name') {
+    return array('votingapi_node_properties_handler' => 'Node properties');
   }
 }
 
