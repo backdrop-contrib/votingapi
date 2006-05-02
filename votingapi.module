@@ -13,13 +13,10 @@ define('VOTINGAPI_VALUE_TYPE_KEY', 'option');
 define('VOTINGAPI_VALUE_DEFAULT_TAG', 'vote');
 define('VOTINGAPI_VALUE_DEFAULT_TYPE', 'percent');
 
-
-include_once('votingapi_ui.inc');
-
 if (module_exist('views')) {
   include_once('votingapi_views.inc');
 }
-if (module_exist('actions')) {
+if (module_exist('actions')){
   include_once('votingapi_actions.inc');
 }
 
@@ -30,71 +27,48 @@ function votingapi_help($section) {
   switch ($section) {
     case 'admin/modules#description':
       return t("Provides a shared voting API for other modules.");
-    case 'admin/settings/voting':
+    case 'admin/settings/votingapi':
       return t("Provides a shared API for other modules to store and display community votes and ratings.");
   }
 }
 
-/**
- * Implementation of hook_perm().
- */
-function votingapi_perm() {
-  return array('administer votingapi');
-}
-
-/**
- * Implementation of hook_menu()
- */
 function votingapi_menu($may_cache) {
-  $items = array();
-  $access = user_access('administer votingapi');
-
-  $items[] = array(
-    'path' => 'admin/voting',
-    'title' => t('voting api'),
-    'callback' => 'votingapi_settings_page',
-    'access' => $access
-  );
-
-  $items[] = array(
-    'path' => 'admin/voting/data',
-    'title' => t('raw vote data'),
-    'callback' => 'votingapi_vote_data_page',
-    'access' => $access,
-  );
-
   if ($may_cache) {
-    if (module_exist('actions')) {
-      if (arg(0) == 'admin' && arg(1) == 'modules') {
-        _votingapi_cache_actions();
-      }
-
-      $items[] = array(
-        'path' => 'admin/voting/actions',
-        'title' => t('actions'),
-        'callback' => 'votingapi_actions_page',
-        'access' => $access,
-      );
-
-      $items[] = array(
-        'path' => 'admin/voting/actions/edit',
-        'title' => t('edit voting action set'),
-        'callback' => 'votingapi_actions_edit_page',
-        'access' => $access,
-        'type' => MENU_CALLBACK,
-      );
-        
-      $items[] = array(
-        'path' => 'admin/voting/actions/delete',
-        'title' => t('delete voting action set'),
-        'callback' => 'votingapi_actions_delete_page',
-        'access' => $access,
-        'type' => MENU_CALLBACK
-      );
+    if (module_exist('actions') && variable_get('votingapi_actions_mode', 'all') != 'none') {
+      _votingapi_cache_actions();
     }
   }
+}
+
+function votingapi_settings() {
+  $form['votingapi_calculation_schedule'] = array(
+    '#type' => 'radios',
+    '#title' => t('Vote tallying'),
+    '#description' => t('On high-traffic sites, administrators can use this setting to postpone the calculation of vote results.'),
+    '#default_value' => variable_get('votingapi_calculation_schedule', 'immediate'),
+    '#options' => array(
+      'immediate' => t('Tally results whenever a vote is cast'),
+      'cron' => t('Tally results at cron-time'),
+      'manual' => t('Never tally votes: I am using a custom module to control vote results')
+    ),
+  );
+
+  $form['votingapi_actions_mode'] = array(
+    '#type' => 'radios',
+    '#title' => t('Actions'),
+    '#description' => t('Voting actions can perform tasks depending on the results of a vote. Requires actions.module.'),
+    '#default_value' => variable_get('votingapi_actions_mode', 'all'),
+    '#options' => array(
+      'all' => t('Allow modules to register their own voting actions'),
+      'user' => t('Only perform voting actions I configure (votingapi_actions.module must be enabled)'),
+      'none' => t('Disable voting actions ')
+    ),
+  );
+  if (!module_exist('actions')) {
+    $form['votingapi_actions_mode']['#attributes'] = array('disabled' => 'true');
+  }
   
-  return $items;
+  return $form;
 }
 
 /**
@@ -155,11 +129,41 @@ function votingapi_set_vote($content_type, $content_id, $vote, $uid = NULL, $rec
     return $vobj;
   }
   else {
-    if (variable_get('votingapi_calculation_schedule', 'immediate') == 'immediate') {
+    if (variable_get('votingapi_calculation_schedule', 'immediate') != 'cron') {
       return votingapi_recalculate_results($content_type, $content_id);
     }
   }
 }
+
+
+/**
+ * Deletes all votes cast on a particular content-object by a user.
+ * In most cases, this is the function that should be used by external modules.
+ *
+ * @param $content_type
+ *   A string identifying the type of content being rated. Node, comment, aggregator item, etc.
+ * @param $content_id
+ *   The key ID of the content being rated.
+ * @param $vote
+ * @param $uid
+ *   The uid of the user casting the vote. If none is specified, the currently logged in user's uid will be inserted.
+ */
+function votingapi_unset_vote($content_type, $content_id, $uid = NULL) {
+  if ($uid == NULL) {
+    global $user;
+    $uid = $user->uid;
+  }
+
+  $votes = votingapi_get_user_votes($content_type, $content_id, $uid);
+  foreach ($votes as $vobj) {
+    votingapi_delete_vote($vobj);
+  }
+
+  if (variable_get('votingapi_calculation_schedule', 'immediate') != 'cron') {
+    return votingapi_recalculate_results($content_type, $content_id);
+  }
+}
+
 
 /**
  * Add a new vote for a given piece of content. If the user has already voted, this casts an additional vote.
@@ -246,29 +250,12 @@ function votingapi_change_vote($vobj, $value) {
  * @param $vobj
  *   A discrete $vote object, or minimally any object with a valid $vobj->vote_id
  */
-function _votingapi_delete_vote($vobj) {
-  // Give other modules a chance to act on the delete.
-  votingapi_invoke_votingapi($vobj, 'delete');  
-  db_query("DELETE FROM {votingapi_vote} WHERE vote_id=%d", $vobj->vote_id);
-}
-
-
-/**
- * Deletes a user's existing vote, if one exists.
- * This external function differs from the internal version in that it
- * calls the recalculation command automatically.
- *
- * @param $vobj
- *   A discrete $vote object, or minimally any object with a valid $vobj->vote_id
- */
 function votingapi_delete_vote($vobj) {
   if (!(isset($vobj->content_type) && isset($vobj->content_id))) {
     $vobj = votingapi_get_vote_by_id($vobj->vote_id);
   }
-  _votingapi_delete_vote($vobj);
-  if (variable_get('votingapi_calculation_schedule', 'immediate') == 'immediate') {
-    votingapi_recalculate_results($vobj->content_type, $vobj->content_id);
-  }
+  votingapi_invoke_votingapi($vobj, 'delete');  
+  db_query("DELETE FROM {votingapi_vote} WHERE vote_id=%d", $vobj->vote_id);
 }
 
 /**
@@ -443,66 +430,71 @@ function votingapi_get_voting_result($content_type, $content_id, $value_type, $t
  *   array($tag => array($value_type => array($calculation_function => $value)));
  */
 
-function votingapi_recalculate_results($content_type, $content_id) {
-  // blow away the existing cache records, filtered by value_type and tag if necessary.
-  $cache = array();
-  $votes = _votingapi_get_raw_votes($content_type, $content_id);
+function votingapi_recalculate_results($content_type, $content_id, $force_calculation = FALSE) {
+  // if we're operating in cron mode, and the 'force recalculation' flag is NOT set, 
+  // bail out. The cron run will pick up the results.
+
+  if (variable_get('votingapi_calculation_schedule', 'immediate') != 'cron' && $force_calculation != TRUE) {
+    // blow away the existing cache records, filtered by value_type and tag if necessary.
+    $cache = array();
+    $votes = _votingapi_get_raw_votes($content_type, $content_id);
+    
+    // Loop through, calculate per-type and per-tag totals, etc.
+    foreach($votes as $vote) {
+      switch ($vote->value_type) {
+        case 'percent':
+          $cache[$vote->tag][$vote->value_type]['count'] += 1;
+          $cache[$vote->tag][$vote->value_type]['sum'] += $vote->value;
+          break;
+          
+        case 'points':
+          $cache[$vote->tag][$vote->value_type]['count'] += 1;
+          $cache[$vote->tag][$vote->value_type]['sum'] += $vote->value;
+          break;
+          
+        case 'option':
+          $cache[$vote->tag][$vote->value_type][$vote->value] += 1;
+          break;
+      }
+    }
+   
+    // Do a quick loop through to calculate averages.
+    // This is also a good example of how external modules can do their own processing.
+    foreach ($cache as $tag=>$types) {
+      foreach ($types as $type=>$functions) {
+        if ($type == 'percent' || $type == 'points') {
+          $cache[$tag][$type]['average'] = $functions['sum'] / $functions['count'];
+        }
+        if ($type == 'percent') {
+          // we don't actually need the sum for this. discard it to avoid cluttering the db.
+          unset($cache[$tag][$type]['sum']);
+        }
+      }
+    }
   
-  // Loop through, calculate per-type and per-tag totals, etc.
-  foreach($votes as $vote) {
-    switch ($vote->value_type) {
-      case 'percent':
-        $cache[$vote->tag][$vote->value_type]['count'] += 1;
-        $cache[$vote->tag][$vote->value_type]['sum'] += $vote->value;
-        break;
-        
-      case 'points':
-        $cache[$vote->tag][$vote->value_type]['count'] += 1;
-        $cache[$vote->tag][$vote->value_type]['sum'] += $vote->value;
-        break;
-        
-      case 'option':
-        $cache[$vote->tag][$vote->value_type][$vote->value] += 1;
-        break;
-    }
-  }
- 
-  // Do a quick loop through to calculate averages.
-  // This is also a good example of how external modules can do their own processing.
-  foreach ($cache as $tag=>$types) {
-    foreach ($types as $type=>$functions) {
-      if ($type == 'percent' || $type == 'points') {
-        $cache[$tag][$type]['average'] = $functions['sum'] / $functions['count'];
-      }
-      if ($type == 'percent') {
-        // we don't actually need the sum for this. discard it to avoid cluttering the db.
-        unset($cache[$tag][$type]['sum']);
+    // Give other modules a chance to alter the collection of votes.
+    votingapi_invoke_votingapi($cache, 'calculate', $votes, $content_type, $content_id);
+    
+    // Now, do the caching. Woo.
+    foreach ($cache as $tag=>$types) {
+      foreach ($types as $type=>$functions) {
+        foreach ($functions as $function=>$value) {
+         $cached[] = _votingapi_insert_cache_result($content_type, $content_id, $value, $type, $tag, $function);
+        }
       }
     }
-  }
-
-  // Give other modules a chance to alter the collection of votes.
-  votingapi_invoke_votingapi($cache, 'calculate', $votes, $content_type, $content_id);
   
-  // Now, do the caching. Woo.
-  foreach ($cache as $tag=>$types) {
-    foreach ($types as $type=>$functions) {
-      foreach ($functions as $function=>$value) {
-       $cached[] = _votingapi_insert_cache_result($content_type, $content_id, $value, $type, $tag, $function);
-      }
+    // Give other modules a chance to act on the results of the vote totaling.
+    votingapi_invoke_votingapi($cached, 'post calculate', $votes, $content_type, $content_id);
+  
+    // If the actions module is enabled, hand off the voting results
+    // for possible node promotion, user banning, or what not.
+    if (module_exist('actions') && variable_get('votingapi_actions_mode', 'all') != 'none') {
+      _votingapi_process_actions($content_id, $content_type, $votes, $cached);
     }
+  
+    return $cached;
   }
-
-  // Give other modules a chance to act on the results of the vote totaling.
-  votingapi_invoke_votingapi($cached, 'post calculate', $votes, $content_type, $content_id);
-
-  // If the actions module is enabled, hand off the voting results
-  // for possible node promotion, user banning, or what not.
-  if (module_exist('actions')) {
-    _votingapi_process_actions($content_id, $content_type, $votes, $cached);
-  }
-
-  return $cached;
 }
 
 /**
@@ -556,7 +548,7 @@ function votingapi_cron() {
     $result = db_query('SELECT DISTINCT content_type, content_id FROM {votingapi_vote} WHERE timestamp > %d', $last_cron);
   
     while ($content = db_fetch_query($result)) {
-      votingapi_recalculate_results($content->content_type, $content->content_id);
+      votingapi_recalculate_results($content->content_type, $content->content_id, TRUE);
     }
 
     variable_set('votingapi_last_cron', $time);

@@ -1,92 +1,154 @@
 <?php
 /* $Id */
 
-// Builds the cached collection of action sets.
-
-function _votingapi_get_all_actions() {
-  $sets = array();
-  $data = cache_get('votingapi_action_sets');
-  $action_sets = unserialize($data->data);
-
-  foreach ($action_sets as $key => $set) {
-    if ($set['enabled'] == TRUE) {
-      $sets[$key] = $set['name'] . ' (' . $set['source'] . ')';
-    }
-  }
-  
-  return $sets;
-}
-
-function _votingapi_get_enabled_actions() {
-  $sets = array();
-  $data = cache_get('votingapi_action_sets');
-  $action_sets = unserialize($data->data);
-
-  foreach ($action_sets as $key => $set) {
-    if ($set['enabled'] == TRUE) {
-      $sets[] = $key;
-    }
-  }
-  
-  return $sets;
-}
-
 function _votingapi_cache_actions() {
+  // This builds a live cache of all the currently enabled sets,
+  // first from the database, then from module 'defaults'. Any
+  // set saved in the DB is assumed to be enabled, and any DB
+  // set overrides a module set with the same name.
+
+  $sets = _votingapi_load_action_sets_from_db();
   $module_sets = _votingapi_load_action_sets_from_modules();
-  $db_sets = _votingapi_load_action_sets_from_db();
-  $active_sets = array();
   
-  foreach($db_sets as $set) {
-    if ($set['enabled']) {
-      $active_sets[$set['name']] = $set;
-    }
-  }  
-  foreach($module_sets as $set) {
-    // as long as active_sets doesn't already contain it,
-    // add the module set.
-    if (!in_array($set['name'], array_keys($active_sets))) {
-      $active_sets[$set['name']] = $set;
-    }
+  foreach($sets as $set) {
+    $active_sets[$set['name']] = $set;
   }
 
-  cache_set("votingapi_action_sets", serialize($active_sets));
+  $status_list = variable_get('votingapi_action_status', array());
+  foreach($module_sets as $set) {
+    if (!in_array($set['name'], array_keys($sets))) {
+      if ($status_list[$set['name']]) {
+        $sets[$set['name']] = $set;
+      }
+    }
+  }
+  cache_set("votingapi_action_sets", serialize($sets));
 }
 
+function _votingapi_get_action_status($set_name) {
+  $status_list = variable_get('votingapi_action_status', array());
+  return $status_list[$set_name];
+}
+
+function _votingapi_set_action_status($set_name, $status) {
+  $status_list = variable_get('votingapi_action_status', array());
+  $status_list[$set_name] = $status;
+  variable_set('votingapi_action_status', $status_list);
+}
+
+function _votingapi_load_action_sets_from_modules() {
+  $sets = array();
+  $status_list = variable_get('votingapi_action_status', array());
+
+  $set_data = module_invoke_all('votingapi_action_sets');
+  foreach ($set_data as $name => $set) {
+    $set['name'] = $name;
+    $sets[$name] = $set;
+    if (!isset($status_list[$name])) {
+      $status_list[$name] = $set['enabled'];
+    }
+  }
+  
+  variable_set('votingapi_action_status', $status_list);
+  return $sets;
+}
 
 function _votingapi_load_action_sets_from_db($parent = NULL) {
   $sets = array();
   if ($parent == NULL) {
-    $result = db_query('SELECT * FROM {votingapi_action_set} WHERE enabled = 1 AND parent IS NULL ORDER BY weight, name ASC');   
+    $result = db_query("SELECT * FROM {votingapi_action_set} WHERE parent_name IS NULL ORDER BY weight, name ASC");   
   }
   else {
-    $result = db_query('SELECT * FROM {votingapi_action_set} WHERE enabled = 1 AND parent = %d ORDER BY weight, name ASC', $pid);   
+    $result = db_query("SELECT * FROM {votingapi_action_set} WHERE parent_name = '%s' ORDER BY weight, name ASC", $parent);   
   }
   while ($set = db_fetch_array($result)) {
-    $condition_result = db_query('SELECT * FROM {votingapi_action_set} WHERE vasid = %d ORDER BY weight ASC');
+    $condition_result = db_query("SELECT * FROM {votingapi_action_condition} WHERE parent_name = '%s' ORDER BY weight ASC", $set['name']);
     while ($condition = db_fetch_array($condition_result)) {
-      $set->conditions[] = $condition;
+      $condition['data'] = unserialize($condition['data']);
+      $set['conditions'][$condition['name']] = $condition;
     }
 
-    $action_result = db_query('SELECT * FROM {votingapi_action_set} WHERE vasid = %d ORDER BY aid ASC');
+    $action_result = db_query("SELECT * FROM {votingapi_action_set} WHERE parent_name = '%s' ORDER BY aid ASC", $set['name']);
     while ($action = db_fetch_array($action_result)) {
-      $set->actions[] = $action;
+      $set['actions'][] = $action['aid'];
     }
-    
-    $set->subsets = _votingapi_load_action_sets_from_parent($set['vasid']);
+
+    $set->subsets = _votingapi_load_action_sets_from_parent($set['name']);
     $sets[$set['name']] = $set;
   }
   
   return $sets;
 }
 
-function _votingapi_load_action_sets_from_modules() {
-  $sets = array();
-  $set_data = module_invoke_all('votingapi_action_sets');
-  foreach ($set_data as $name => $set) {
-    $sets[$name] = $set;
+function _votingapi_insert_set($set) {
+  $sql = "INSERT INTO {votingapi_action_set} ";
+  $sql .= "(name, parent_name, content_type, source, description, condition_mask, required, enabled, weight)";
+  $sql .= "VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %d, %d, %d)";
+  
+  db_query($sql, $set['name'], $set['parent_name'], $set['content_type'],
+    $set['source'], $set['description'], $set['condition_mask'], 
+    $set['required'], $set['enabled'], $set['weight']);
+  
+  foreach ($set['conditions'] as $condition) {
+    $condition['parent_name'] = $set['name'];
+    _votingapi_insert_condition($condition);
   }
-  return $sets;
+  
+  foreach ($set['actions'] as $action) {
+    db_query("INSERT INTO {votingapi_action} (parent_name, aid) VALUES ('%s', '%s')", $set['name'], $action);
+  }
+  
+  foreach ($set['sets'] as $subset) {
+    $subset['parent_name'] = $set['name'];
+    _votingapi_insert_set($subset);
+  }
 }
+
+function _votingapi_insert_condition($condition) {
+  $sql = "INSERT INTO {votingapi_action_condition} ";
+  $sql .= "(name, parent_name, description, data, handler, weight)";
+  $sql .= "VALUES ('%s', '%s', '%s', '%s', '%s', %d)";
+  
+  db_query($sql, $condition['name'], $condition['parent_name'], $condition['description'],
+    serialize($condition['data']), $condition['handler'], $condition['weight']);
+}
+
+function _votingapi_update_set($set) {
+  $sql = "UPDATE {votingapi_action_set} SET ";
+  $sql .= "name = '%s', parent_name = '%s', content_type = '%s', source = '%s', description = '%s', condition_mask = '%s', ";
+  $sql .= "required = %d, enabled = %d, weight = %d ";
+  $sql .= "WHERE name = '%s'";
+  
+  db_query($sql, $set['name'], $set['parent_name'], $set['content_type'],
+    $set['source'], $set['description'], $set['condition_mask'], 
+    $set['required'], $set['enabled'], $set['weight']);
+  
+  foreach ($set['conditions'] as $condition) {
+    $condition['parent_name'] = $set['name'];
+    _votingapi_update_condition($condition);
+  }
+
+  db_query("DELETE FROM {votingapi_action} WHERE parent_name = '%s'", $set['name']);
+  foreach ($set['actions'] as $action) {
+    db_query("INSERT INTO {votingapi_action} (parent_name, aid) VALUES ('%s', '%s')", $set['name'], $action);
+  }
+  
+  foreach ($set['sets'] as $subset) {
+    $subset['parent_name'] = $set['name'];
+    _votingapi_update_set($subset);
+  }
+}
+
+function _votingapi_update_condition($condition) {
+  $sql = "UPDATE {votingapi_action_condition} SET ";
+  $sql .= "name = '%s', parent_name = '%s', description = '%s', data = '%s', handler = '%s', weight = %d ";
+  $sql .= "WHERE name = '%s' AND parent_name = '%s'";
+  
+  db_query($sql, $condition['name'], $condition['parent_name'], $condition['description'],
+    serialize($condition['data']), $condition['handler'], $condition['weight'], 
+    $condition['name'], $condition['parent_name']);
+}
+
 
 /**
  * Functions that integrate VotingAPI with the Actions module.
@@ -112,7 +174,7 @@ function _votingapi_process_actions($content_id, $content_type, $votes, $results
   }
 
   foreach ($action_sets as $action_set) {
-    if ($action_set->content_type == $content_type) {
+    if ($action_set['content_type'] == $content_type) {
       $actions = array();
       _votingapi_process_action_set($content, $votes, $results, $action_set, $actions);
       foreach ($actions as $action) {
@@ -141,8 +203,8 @@ function _votingapi_process_action_set($content = NULL, $votes = array(), $resul
 
   // Here, we iterate through every rule. The value starts as true,
   // and a single false will trip it to failure state.
-  foreach($action_set->conditions as $condition) {
-    $function = $condition->handler;
+  foreach($action_set['conditions'] as $condition) {
+    $function = $condition['handler'];
     if (function_exists($function)) {
       // this calls a handler with several ops. 'process' and 'input' are the two i've thought of.
       $conditions_result = $function('process', $content, $votes, $results, $condition);
@@ -201,6 +263,11 @@ function _votingapi_process_action_set($content = NULL, $votes = array(), $resul
 
   return $set_result;
 }
+
+/*********************************************
+ *  VOTINGAPI ACTION CONDITION HANDLERS
+ *  TO BE USED BY OTHER MODULES AND USERS
+ *********************************************/
 
 
 function votingapi_vote_result_handler($op, $content, $votes, $results, $rule) {
@@ -350,8 +417,8 @@ function votingapi_vote_handler($op, $content, $votes, $results, $rule) {
         }
       }
   
-      if (isset($value->tag)) {
-        if ($data->tag != $data->tag) {
+      if (isset($data->tag)) {
+        if ($result->tag != $data->tag) {
           continue;
         }
       }
@@ -442,9 +509,9 @@ function votingapi_node_properties_handler($op, $content = NULL, $votes = NULL, 
     //  compare to. This is mainly useful for ensuring that a node hasn't yet been promoted
     //  before promoting it, etc. At present only == and != are supported by this handler.
   
-    $property = $rule->data['property'];
-    $comparison = $rule->data['comparison'];
-    $value = $rule->data['value'];;
+    $property = $rule['data']['property'];
+    $comparison = $rule['data']['comparison'];
+    $value = $rule['data']['value'];;
 
     switch ($comparison) {
       case '==' :

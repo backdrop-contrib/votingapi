@@ -33,32 +33,30 @@ function votingapi_install() {
         ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
 
       db_query("CREATE TABLE {votingapi_action_set} (
-           vasid int(10) unsigned NOT NULL,
-           parent int(10) unsigned NOT NULL,
+           name varchar(64) NOT NULL,
+           source varchar(64) default NULL,
+           description varchar(255) default NULL,
+           parent_name varchar(64) default NULL,
            required int(8) NOT NULL default '0',
            mask varchar(8) default 'AND',
            content_type varchar(20) default NULL,
-           name varchar(128) default NULL,
-           description varchar(255) default NULL,
-           enabled int default 1,
-           source varchar(65) default NULL,
            weight int(10) NOT NULL default 0,
-           PRIMARY KEY  (vasid)
+           PRIMARY KEY  (name)
          ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
 
       db_query("CREATE TABLE {votingapi_action_condition} (
-          vacid int(10) unsigned NOT NULL,
-          vasid int(10) unsigned NOT NULL,
-          name varchar(128) default NULL,
+          name varchar(64) NOT NULL,
+          parent_name varchar(64) default NULL,
+          description varchar(255) NOT NULL,
           weight int(10) NOT NULL default 0,
           data varchar(255),
           handler varchar(255) NOT NULL,
-          PRIMARY KEY  (vacid)
+          PRIMARY KEY  (name)
         ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
 
       db_query("CREATE TABLE {votingapi_action} (
-          vasid int(10) unsigned NOT NULL,
-          aid varchar(255) NOT NULL default '0'
+          parent_name varchar(64) NOT NULL,
+          aid varchar(255) NOT NULL
         ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
 
       break;
@@ -202,4 +200,43 @@ function votingapi_update_6() {
 
   return $ret;
 
+}
+
+
+function votingapi_update_7() {
+  // There are quite a few changes. Let's just take the easy way and nuke this puppy.
+  // Nothing has been using the tables up to this point, anyhow.
+  
+  $ret[] = update_sql("DROP TABLE {votingapi_action_set}");
+  $ret[] = update_sql("DROP TABLE {votingapi_action_condition}");
+  $ret[] = update_sql("DROP TABLE {votingapi_action}");
+  
+  $ret[] = update_sql("CREATE TABLE {votingapi_action_set} (
+      name varchar(64) NOT NULL,
+      parent_name varchar(64) default NULL,
+      content_type varchar(20) default NULL,
+      source varchar(64) default NULL,
+      description varchar(255) default NULL,
+      required int(8) NOT NULL default '0',
+      criteria_mask varchar(8) default 'AND',
+      weight int(10) NOT NULL default 0,
+      PRIMARY KEY  (name)
+    ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
+
+  $ret[] = update_sql("CREATE TABLE {votingapi_action_condition} (
+      name varchar(64) NOT NULL,
+      parent_name varchar(64) default NULL,
+      description varchar(255) default NULL,
+      weight int(10) NOT NULL default 0,
+      data varchar(255),
+      handler varchar(255) NOT NULL,
+      PRIMARY KEY  (name)
+    ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
+
+  $ret[] = update_sql("CREATE TABLE {votingapi_action} (
+      parent_name varchar(64) NOT NULL,
+      aid varchar(255) NOT NULL
+    ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
+    
+  return $ret;
 }

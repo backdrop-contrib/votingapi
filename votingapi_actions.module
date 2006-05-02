@@ -1,0 +1,123 @@
+<?php
+/* $Id */
+
+/**
+ * Lets users directly control the votingapi's integration with the actions module.
+ */
+ 
+ 
+ /**
+ * Implementation of hook_perm().
+ */
+function votingapi_actions_perm() {
+  return array('administer voting actions');
+}
+
+/*
+ * Implementation of hook_menu()
+ */
+function votingapi_actions_menu($may_cache) {
+  $items = array();
+
+  if ($may_cache) {
+    $items[] = array('path' => 'admin/votingapi_actions', 
+      'title' => t('voting actions'),
+      'callback' => 'votingapi_actions_admin_page',
+      'access' => user_access('administer voting actions'),
+      'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'admin/votingapi_actions/list', 
+      'title' => t('list'),
+      'callback' => 'votingapi_actions_admin_page',
+      'access' => user_access('administer voting actions'),
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+      'weight' => '-1');
+    $items[] = array('path' => 'admin/votingapi_actions/add', 
+      'title' => t('add'),
+      'callback' => 'votingapi_actions_admin_add_page',
+      'access' => user_access('administer voting actions'),
+      'type' => MENU_LOCAL_TASK);
+    $items[] = array('path' => 'admin/votingapi_actions/edit', 
+      'title' => t('edit action set'),
+      'callback' => 'votingapi_actions_admin_edit_page',
+      'access' => user_access('administer voting actions'),
+      'type' => MENU_CALLBACK);
+    $items[] = array('path' => 'admin/votingapi_actions/import', 
+      'title' => t('import'),
+      'callback' => 'votingapi_actions_admin_import_page',
+      'access' => user_access('administer voting actions'),
+      'type' => MENU_LOCAL_TASK);
+    $items[] = array('path' => 'admin/votingapi_actions/export', 
+      'title' => t('export action set'),
+      'callback' => 'votingapi_actions_admin_export_page',
+      'access' => user_access('administer voting actions'),
+      'type' => MENU_CALLBACK);
+    $items[] = array('path' => 'admin/votingapi_actions/delete', 
+      'title' => t('edit action set'),
+      'callback' => 'votingapi_actions_admin_delete_page',
+      'access' => user_access('administer voting actions'),
+      'type' => MENU_CALLBACK);
+    $items[] = array('path' => 'admin/votingapi_actions/enable', 
+      'callback' => 'votingapi_actions_admin_enable_page',
+      'access' => user_access('administer voting actions'),
+      'type' => MENU_CALLBACK);
+    $items[] = array('path' => 'admin/votingapi_actions/disable', 
+      'callback' => 'votingapi_actions_admin_disable_page',
+      'access' => user_access('administer voting actions'),
+      'type' => MENU_CALLBACK);
+  }
+  return $items;
+}
+
+
+/**
+ * hunmonk's module dependency check: see http://drupal.org/node/54463
+ */
+function votingapi_actions_form_alter($form_id, &$form) {
+  if ($form_id == 'system_modules' && !$_POST) {
+    votingapi_actions_system_module_validate($form);
+  }
+}
+
+/**
+ * hunmonk's module dependency check: see http://drupal.org/node/54463
+ */
+function votingapi_actions_system_module_validate(&$form) {
+  $module = 'votingapi_actions';
+  $dependencies = array('votingapi', 'actions');
+  foreach ($dependencies as $dependency) {
+      if (!in_array($dependency, $form['status']['#default_value'])) {
+        $missing_dependency = TRUE;
+        $missing_dependency_list[] = $dependency;
+      }
+  }
+  if (in_array($module, $form['status']['#default_value']) && isset($missing_dependency)) {
+    db_query("UPDATE {system} SET status = 0 WHERE type = 'module' AND name = '%s'", $module);
+    $key = array_search($module, $form['status']['#default_value']);
+    unset($form['status']['#default_value'][$key]);
+    drupal_set_message(t('The module %module was deactivated--it requires the following disabled/non-existant modules to function properly: %dependencies', array('%module' => $module, '%dependencies' => implode(', ', $missing_dependency_list))), 'error');
+  }
+}
+
+function votingapi_actions_admin_page() {
+}
+
+function votingapi_actions_admin_add_page($set_name = NULL) {
+}
+
+function votingapi_actions_admin_edit_page($set_name) {
+}
+
+function votingapi_actions_admin_import_page() {
+}
+
+function votingapi_actions_admin_export_page($set_name) {
+}
+
+function votingapi_actions_admin_delete_page($set_name) {
+}
+
+function votingapi_actions_admin_enable_page($set_name) {
+}
+
+function votingapi_actions_admin_disable_page($set_name) {
+}
