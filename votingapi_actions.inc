@@ -10,15 +10,15 @@ function _votingapi_cache_actions() {
   $sets = _votingapi_load_action_sets_from_db();
   $module_sets = _votingapi_load_action_sets_from_modules();
   
-  foreach($sets as $set) {
-    $active_sets[$set['name']] = $set;
+  foreach($sets as $name => $set) {
+    $active_sets[$name] = $set;
   }
 
   $status_list = variable_get('votingapi_action_status', array());
-  foreach($module_sets as $set) {
-    if (!in_array($set['name'], array_keys($sets))) {
-      if ($status_list[$set['name']]) {
-        $sets[$set['name']] = $set;
+  foreach($module_sets as $name => $set) {
+    if (!in_array($name, array_keys($sets))) {
+      if ($status_list[$name]) {
+        $sets[$name] = $set;
       }
     }
   }
@@ -34,6 +34,7 @@ function _votingapi_set_action_status($set_name, $status) {
   $status_list = variable_get('votingapi_action_status', array());
   $status_list[$set_name] = $status;
   variable_set('votingapi_action_status', $status_list);
+  _votingapi_cache_actions();
 }
 
 function _votingapi_load_action_sets_from_modules() {
@@ -42,7 +43,6 @@ function _votingapi_load_action_sets_from_modules() {
 
   $set_data = module_invoke_all('votingapi_action_sets');
   foreach ($set_data as $name => $set) {
-    $set['name'] = $name;
     $sets[$name] = $set;
     if (!isset($status_list[$name])) {
       $status_list[$name] = $set['enabled'];
@@ -62,89 +62,94 @@ function _votingapi_load_action_sets_from_db($parent = NULL) {
     $result = db_query("SELECT * FROM {votingapi_action_set} WHERE parent_name = '%s' ORDER BY weight, name ASC", $parent);   
   }
   while ($set = db_fetch_array($result)) {
-    $condition_result = db_query("SELECT * FROM {votingapi_action_condition} WHERE parent_name = '%s' ORDER BY weight ASC", $set['name']);
+    $set_name = $set['name'];
+    unset($set['name']);
+
+    $condition_result = db_query("SELECT * FROM {votingapi_action_condition} WHERE parent_name = '%s' ORDER BY weight ASC", $set_name);
     while ($condition = db_fetch_array($condition_result)) {
       $condition['data'] = unserialize($condition['data']);
-      $set['conditions'][$condition['name']] = $condition;
+      $name = $condition['name'];
+      unset($condition['name']);
+      $set['conditions'][$name] = $condition;
     }
 
-    $action_result = db_query("SELECT * FROM {votingapi_action_set} WHERE parent_name = '%s' ORDER BY aid ASC", $set['name']);
+    $action_result = db_query("SELECT * FROM {votingapi_action_set} WHERE parent_name = '%s' ORDER BY aid ASC", $set_name);
     while ($action = db_fetch_array($action_result)) {
       $set['actions'][] = $action['aid'];
     }
 
-    $set->subsets = _votingapi_load_action_sets_from_parent($set['name']);
-    $sets[$set['name']] = $set;
+    $set->subsets = _votingapi_load_action_sets_from_parent($set_name);
+    $sets[$set_name] = $set;
   }
   
   return $sets;
 }
 
-function _votingapi_insert_set($set) {
+function _votingapi_insert_set($name, $set) {
   $sql = "INSERT INTO {votingapi_action_set} ";
-  $sql .= "(name, parent_name, content_type, source, description, condition_mask, required, enabled, weight)";
+  $sql .= "(name, parent_name, content_type, source, description, condition_mask, required, weight)";
   $sql .= "VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %d, %d, %d)";
   
   db_query($sql, $set['name'], $set['parent_name'], $set['content_type'],
     $set['source'], $set['description'], $set['condition_mask'], 
-    $set['required'], $set['enabled'], $set['weight']);
+    $set['required'], $set['weight']);
   
   foreach ($set['conditions'] as $condition) {
-    $condition['parent_name'] = $set['name'];
+    $condition['parent_name'] = $name;
     _votingapi_insert_condition($condition);
   }
   
   foreach ($set['actions'] as $action) {
-    db_query("INSERT INTO {votingapi_action} (parent_name, aid) VALUES ('%s', '%s')", $set['name'], $action);
+    db_query("INSERT INTO {votingapi_action} (parent_name, aid) VALUES ('%s', '%s')", $name, $action);
   }
   
   foreach ($set['sets'] as $subset) {
-    $subset['parent_name'] = $set['name'];
+    $subset['parent_name'] = $name;
     _votingapi_insert_set($subset);
   }
 }
 
-function _votingapi_insert_condition($condition) {
+function _votingapi_insert_condition($name, $condition) {
   $sql = "INSERT INTO {votingapi_action_condition} ";
   $sql .= "(name, parent_name, description, data, handler, weight)";
   $sql .= "VALUES ('%s', '%s', '%s', '%s', '%s', %d)";
   
-  db_query($sql, $condition['name'], $condition['parent_name'], $condition['description'],
+  db_query($sql, $name, $condition['parent_name'], $condition['description'],
     serialize($condition['data']), $condition['handler'], $condition['weight']);
 }
 
-function _votingapi_update_set($set) {
+function _votingapi_update_set($name, $set) {
   $sql = "UPDATE {votingapi_action_set} SET ";
   $sql .= "name = '%s', parent_name = '%s', content_type = '%s', source = '%s', description = '%s', condition_mask = '%s', ";
-  $sql .= "required = %d, enabled = %d, weight = %d ";
+  $sql .= "required = %d, weight = %d ";
   $sql .= "WHERE name = '%s'";
   
-  db_query($sql, $set['name'], $set['parent_name'], $set['content_type'],
+  db_query($sql, $name, $set['parent_name'], $set['content_type'],
     $set['source'], $set['description'], $set['condition_mask'], 
-    $set['required'], $set['enabled'], $set['weight']);
+    $set['required'], $set['weight']);
   
-  foreach ($set['conditions'] as $condition) {
-    $condition['parent_name'] = $set['name'];
-    _votingapi_update_condition($condition);
+  foreach ($set['conditions'] as $cname => $condition) {
+    $condition['parent_name'] = $name;
+    _votingapi_update_condition($cname, $condition);
   }
 
-  db_query("DELETE FROM {votingapi_action} WHERE parent_name = '%s'", $set['name']);
+  db_query("DELETE FROM {votingapi_action} WHERE parent_name = '%s'", $name);
   foreach ($set['actions'] as $action) {
-    db_query("INSERT INTO {votingapi_action} (parent_name, aid) VALUES ('%s', '%s')", $set['name'], $action);
+    db_query("INSERT INTO {votingapi_action} (parent_name, aid) VALUES ('%s', '%s')", $name, $action);
   }
   
-  foreach ($set['sets'] as $subset) {
-    $subset['parent_name'] = $set['name'];
-    _votingapi_update_set($subset);
+  foreach ($set['sets'] as $sname => $subset) {
+    $subset['parent_name'] = $name;
+    _votingapi_update_set($sname, $subset);
   }
 }
 
-function _votingapi_update_condition($condition) {
+function _votingapi_update_condition($name, $condition) {
   $sql = "UPDATE {votingapi_action_condition} SET ";
   $sql .= "name = '%s', parent_name = '%s', description = '%s', data = '%s', handler = '%s', weight = %d ";
   $sql .= "WHERE name = '%s' AND parent_name = '%s'";
   
-  db_query($sql, $condition['name'], $condition['parent_name'], $condition['description'],
+  db_query($sql, $name, $condition['parent_name'], $condition['description'],
     serialize($condition['data']), $condition['handler'], $condition['weight'], 
     $condition['name'], $condition['parent_name']);
 }
@@ -183,7 +188,6 @@ function _votingapi_process_actions($content_id, $content_type, $votes, $results
     }
   }
 }
-
 
 // An internal utility function that calls itself recursively to evaluate a
 // tree of voting action sets. $actions is passed in by references, and accumulates

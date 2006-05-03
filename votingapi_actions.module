@@ -99,25 +99,173 @@ function votingapi_actions_system_module_validate(&$form) {
 }
 
 function votingapi_actions_admin_page() {
+  $numSets = 25;
+
+  drupal_set_title(t('administer voting actions'));
+
+  foreach (_votingapi_load_action_sets_from_db() as $name => $set) {
+    $items[] = array($name, $set['description'], theme('links', array(l(t('edit'), "admin/votingapi_actions/edit/$name"), l(t('export'), "admin/admin/votingapi_actions/export/$view->vid"), l(t('delete'), "admin/admin/votingapi_actions/delete/$name"))));
+    $used[$name] = true;
+  }
+
+  if ($items) {
+    $output = theme('table', array(t('Name'), t('Description'), t('Actions')), $items, array("cellpadding" => "4"), t('User-Defined Action Sets'));
+    $output .= theme('pager', NULL, $numSets);
+  }
+  else {
+    $output .= t('<p>No action sets have currently been defined.</p>');
+  }
+
+  $output .= t('<p>Below are system default action sets; if you clone one of these, or create another set with the same name, it will override the default.</p>');
+
+  $items = array();
+  $default_actions = _votingapi_load_action_sets_from_modules();
+  $set_status = variable_get('votingapi_action_status', array());
+
+  foreach ($default_actions as $name => $set) {
+    if ($used[$name]) {
+      $status = t('Overridden');
+    }
+    else if (isset($set_status[$name])) {
+      if ($set_status[$name]) {
+        $status = 'Enabled';
+      }
+      else {
+        $status = 'Disabled';
+      }
+    }
+    else if ($set['enabled']) {
+      $status = 'Enabled';
+    }
+    else {
+      $status = 'Disabled';
+    }
+
+    $links = array(l(t('clone'), "admin/votingapi_actions/add/$name"));
+    if ($status == 'Enabled') {
+      $links[] = l(t('disable'), "admin/votingapi_actions/disable/$name");
+    }
+    else if ($status == 'Disabled') {
+      $links[] = l(t('enable'), "admin/votingapi_actions/enable/$name");
+    }
+    $links[] = l(t('export'), "admin/votingapi_actions/export/$name");
+
+    $items[] = array($name, $set['source'], $set['description'], $status, theme('links', $links));
+  }
+
+  if ($items) {
+    $output .= theme('table', array(t('Name'), t('Source'), t('Description'), t('Status'), t('Actions')), $items, array("cellpadding" => "4"), t('Default Action Sets'));
+  }
+  else {
+    $output .= t('<p>No action sets have currently been defined.</p>');
+  }
+
+  return $output;
 }
 
 function votingapi_actions_admin_add_page($set_name = NULL) {
+  return "";
 }
 
 function votingapi_actions_admin_edit_page($set_name) {
+  return "";
 }
 
 function votingapi_actions_admin_import_page() {
+  $op = $_POST['edit']['name'];
+
+  if ($op) {
+    return votingapi_actions_admin_add_page();
+  }
+  drupal_set_title("Import an Action set");
+  $form['set'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Import Action Set Code'),
+    '#cols' => 60,
+    '#rows' => 6,
+    '#description' => t('Cut and paste the results of an Export action set here.'),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t("Submit"),
+  );
+
+  return drupal_get_form('votingapi_actions_set_import', $form);
 }
 
+/*
+ * Handle the submit button on importing an action set.
+ */
+function votingapi_actions_set_import_submit($formid, $form) {
+  ob_start();
+  eval($form['set']);
+  ob_end_clean();
+
+  if (!is_array($sets)) {
+    drupal_set_message(t('Unable to get an action set out of that.'));
+    return;
+  }
+
+  foreach($sets as $name => $set) {
+    if ($name) {
+      if (is_array($set)) {
+        drupal_set_title(t('Add an Action Set'));
+        print theme('page', $set);
+        exit;
+      }
+    }
+    else {
+      drupal_set_message(t('Unable to get an action set out of that.'));
+      return;
+    }
+  }
+}
+
+
 function votingapi_actions_admin_export_page($set_name) {
+  $code = _votingapi_create_set_code($set_name);
+
+  $lines = substr_count($code, "\n");
+  $form['code'] = array(
+    '#type' => 'textarea',
+    '#title' => $set['name'],
+    '#default_value' => $code,
+    '#rows' => $lines
+  );
+  return drupal_get_form('votingapi_actions_set_export', $form);
 }
 
 function votingapi_actions_admin_delete_page($set_name) {
+  return "";
 }
 
 function votingapi_actions_admin_enable_page($set_name) {
+  _votingapi_set_action_status($set_name, true);
+  drupal_goto('admin/votingapi_actions');
 }
 
 function votingapi_actions_admin_disable_page($set_name) {
+  _votingapi_set_action_status($set_name, false);
+  drupal_goto('admin/votingapi_actions');
+}
+
+function _votingapi_create_set_code($set_name) {
+  $data = cache_get('votingapi_action_sets');
+  $action_sets = unserialize($data->data);
+  $set = $action_sets[$set_name];
+  if ($set) {
+    unset($set['name']);
+    $code = "\n\$sets = array(\n";
+    $code .= "'$set_name' => ";
+    ob_start();
+    var_export($set);
+    $code .= ob_get_clean();
+    ob_end_clean();
+    $code .= "\n);\n";
+  }
+  else {
+    $code = "The Action set '$set_name' does not exist.";
+  }
+  return $code;
 }
