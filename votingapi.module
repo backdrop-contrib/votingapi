@@ -35,7 +35,7 @@ function votingapi_help($section) {
 function votingapi_menu($may_cache) {
   if ($may_cache) {
     if (module_exist('actions') && variable_get('votingapi_actions_mode', 'all') != 'none') {
-      _votingapi_cache_actions();
+      votingapi_rebuild_action_cache();
     }
   }
 }
@@ -256,6 +256,20 @@ function votingapi_delete_vote($vobj) {
   }
   votingapi_invoke_votingapi($vobj, 'delete');  
   db_query("DELETE FROM {votingapi_vote} WHERE vote_id=%d", $vobj->vote_id);
+}
+
+/**
+ * Deletes a collection of vote objects.
+ *
+ * @param $votes
+ *   An array of vote objects
+ */
+function votingapi_delete_votes($votes = array()) {
+  if (is_array($votes)) {
+    foreach ($votes as $vobj) {
+      votingapi_delete_vote($vobj);
+    }
+  }
 }
 
 /**

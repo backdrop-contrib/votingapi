@@ -1,7 +1,7 @@
 <?php
 /* $Id */
 
-function _votingapi_cache_actions() {
+function votingapi_rebuild_action_cache() {
   // This builds a live cache of all the currently enabled sets,
   // first from the database, then from module 'defaults'. Any
   // set saved in the DB is assumed to be enabled, and any DB
@@ -34,7 +34,7 @@ function _votingapi_set_action_status($set_name, $status) {
   $status_list = variable_get('votingapi_action_status', array());
   $status_list[$set_name] = $status;
   variable_set('votingapi_action_status', $status_list);
-  _votingapi_cache_actions();
+  votingapi_rebuild_action_cache();
 }
 
 function _votingapi_load_action_sets_from_modules() {
