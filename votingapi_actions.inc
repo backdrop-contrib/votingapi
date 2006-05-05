@@ -1,7 +1,7 @@
 <?php
 /* $Id */
 
-function votingapi_rebuild_action_cache() {
+function _votingapi_cache_actions() {
   // This builds a live cache of all the currently enabled sets,
   // first from the database, then from module 'defaults'. Any
   // set saved in the DB is assumed to be enabled, and any DB
@@ -34,7 +34,7 @@ function _votingapi_set_action_status($set_name, $status) {
   $status_list = variable_get('votingapi_action_status', array());
   $status_list[$set_name] = $status;
   variable_set('votingapi_action_status', $status_list);
-  votingapi_rebuild_action_cache();
+  _votingapi_cache_actions();
 }
 
 function _votingapi_load_action_sets_from_modules() {
@@ -113,7 +113,7 @@ function _votingapi_insert_condition($name, $condition) {
   $sql = "INSERT INTO {votingapi_action_condition} ";
   $sql .= "(name, parent_name, description, data, handler, weight)";
   $sql .= "VALUES ('%s', '%s', '%s', '%s', '%s', %d)";
-  
+
   db_query($sql, $name, $condition['parent_name'], $condition['description'],
     serialize($condition['data']), $condition['handler'], $condition['weight']);
 }
@@ -130,7 +130,17 @@ function _votingapi_update_set($name, $set) {
   
   foreach ($set['conditions'] as $cname => $condition) {
     $condition['parent_name'] = $name;
-    _votingapi_update_condition($cname, $condition);
+    if ($condition['new']) {
+      _votingapi_insert_condition($cname, $condition);
+    }
+    else {
+      _votingapi_update_condition($cname, $condition);
+    }
+  }
+
+  foreach ($set['deleted_conditions'] as $cname => $condition) {
+    $condition['parent_name'] = $name;
+    _votingapi_delete_condition($cname, $condition);
   }
 
   db_query("DELETE FROM {votingapi_action} WHERE parent_name = '%s'", $name);
@@ -140,7 +150,17 @@ function _votingapi_update_set($name, $set) {
   
   foreach ($set['sets'] as $sname => $subset) {
     $subset['parent_name'] = $name;
-    _votingapi_update_set($sname, $subset);
+    if ($subset['new']) {
+      _votingapi_insert_set($sname , $subset);
+    }
+    else {
+      _votingapi_update_set($sname , $subset);
+    }
+  }
+
+  foreach ($set['deleted_sets'] as $sname => $subset) {
+    $subset['parent_name'] = $name;
+    _votingapi_delete_set($sname , $subset);
   }
 }
 
@@ -154,6 +174,79 @@ function _votingapi_update_condition($name, $condition) {
     $condition['name'], $condition['parent_name']);
 }
 
+function _votingapi_delete_set($name, $set) {  
+  foreach ($set['sets'] as $sname => $subset) {
+    $subset['parent_name'] = $name;
+    _votingapi_update_set($sname, $subset);
+  }
+
+  foreach ($set['conditions'] as $cname => $condition) {
+    $condition['parent_name'] = $name;
+    _votingapi_delete_condition($cname, $condition);
+  }
+
+  db_query("DELETE FROM {votingapi_action} WHERE parent_name = '%s'", $name);
+  db_query("DELETE FROM {votingapi_action_set} WHERE name = '%s'", $name);
+}
+
+function _votingapi_delete_condition($name, $condition) {
+  db_query("DELETE FROM {votingapi_action_condition} WHERE name = '%s' AND parent_name = '%s'", $name, $condition['parent_name']);
+}
+
+
+function _votingapi_validate_set($name, $set) {
+  $errors = array();
+
+  if (!is_array($set)) {
+    $errors[] = "The set '$name' is not an array!";
+    return $errors;
+  }
+  
+  if (!isset($set['content_type']) && !isset($set['parent_name'])) {
+    $errors[] = "The set '$name' must have a content_type.";
+  }
+
+  if (!isset($set['mask'])) {
+    $errors[] = "The set '$name' must define a mask of 'AND' or 'OR'.";
+  }
+
+  if (!isset($set['conditions'])) {
+    $errors[] = "The set '$name' has no conditions defined.";
+  }
+  else {
+    if (count($set['conditions']) == 0) {
+      $errors[] = "The set '$name' has no conditions defined.";
+    }
+  }
+
+  foreach ($set['conditions'] as $cname => $condition) {
+    $errors = array_merge($errors, _votingapi_validate_condition($cname, $condition));
+  }
+
+  foreach ($set['sets'] as $subname => $subset) {
+    $errors = array_merge($errors, _votingapi_validate_set($subname, $subset));
+  }
+  return $errors;
+}
+
+function _votingapi_validate_condition($name, $condition) {
+  $errors = array();
+  if (!is_array($condition)) {
+    $errors[] = "The condition '$name' is not an array!";
+    return $errors;
+  }
+
+  if (!isset($condition['handler'])) {
+    $errors[] = "The condition '$name' has no handler.";
+  }
+
+  if (!function_exists($condition['handler'])) {
+    $handler = $condition['handler'];
+    $errors[] = "The condition '$name' has an invalid handler ($handler).";
+  }
+
+  return $errors;
+}
 
 /**
  * Functions that integrate VotingAPI with the Actions module.
