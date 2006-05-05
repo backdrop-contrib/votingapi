@@ -38,7 +38,7 @@ function votingapi_install() {
            description varchar(255) default NULL,
            parent_name varchar(64) default NULL,
            required int(8) NOT NULL default '0',
-           mask varchar(8) default 'AND',
+           condition_mask varchar(8) default 'AND',
            content_type varchar(20) default NULL,
            weight int(10) NOT NULL default 0,
            PRIMARY KEY  (name)
@@ -238,5 +238,12 @@ function votingapi_update_7() {
       aid varchar(255) NOT NULL
     ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
     
+  return $ret;
+}
+
+function votingapi_update_8() {
+  // whoops. mis-named column.
+  $ret = array();
+  $ret[] = update_sql("ALTER TABLE {votingapi_action_set} CHANGE criteria_mask condition_mask varchar(8) DEFAULT 'AND';");
   return $ret;
 }
