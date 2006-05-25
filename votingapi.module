@@ -563,7 +563,7 @@ function votingapi_cron() {
     $last_cron = variable_get('votingapi_last_cron', 0);
     $result = db_query('SELECT DISTINCT content_type, content_id FROM {votingapi_vote} WHERE timestamp > %d', $last_cron);
   
-    while ($content = db_fetch_query($result)) {
+    while ($content = db_fetch_object($result)) {
       votingapi_recalculate_results($content->content_type, $content->content_id, TRUE);
     }
 
