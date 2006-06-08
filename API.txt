@@ -76,18 +76,20 @@ Using the API (With Full Control)
 
 VotingAPI hooks (Bending the API to your will)
 ================================================
-  hook_votingapi_load
-  hook_votingapi_insert
-  hook_votingapi_update
-  hook_votingapi_delete
+  hook_votingapi_load($vote)
+  hook_votingapi_insert($vote)
+  hook_votingapi_update($vote, $new_value)
+  hook_votingapi_delete($vote)
 
-  hook_votingapi_format
+  hook_votingapi_format($vote, $field)
 
-  hook_votingapi_calculate
-  hook_votingapi_results
+  hook_votingapi_calculate(&$results, $votes, $content_type, $content_id)
+  hook_votingapi_results($results, $votes, $content_type, $content_id)
 
 
 Actions Integration
 ===================
   Providing default actions
   Exposing custom action handlers
+
+  hook_votingapi_action_sets()
