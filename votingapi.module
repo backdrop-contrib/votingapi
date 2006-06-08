@@ -216,6 +216,7 @@ function votingapi_add_vote($content_type, $content_id, $value, $value_type = VO
 
   // Give other modules a chance to act on the insert operation.
   votingapi_invoke_votingapi($vobj, 'insert');
+  module_invoke_all('votingapi_insert', $vobj);
 
   return $vobj;
 }
@@ -238,7 +239,8 @@ function votingapi_change_vote($vobj, $value) {
   // Both the existing vote object and the new vote value are handed off to interested
   // modules.
   votingapi_invoke_votingapi($vobj, 'update', $value);
-  
+  module_invoke_all('votingapi_update', $vobj, $value);
+
   // update the existing $vobj and return it.
   $vobj->value = $value;
   return $vobj;
@@ -255,6 +257,7 @@ function votingapi_delete_vote($vobj) {
     $vobj = votingapi_get_vote_by_id($vobj->vote_id);
   }
   votingapi_invoke_votingapi($vobj, 'delete');  
+  module_invoke_all('votingapi_delete', $vobj);
   db_query("DELETE FROM {votingapi_vote} WHERE vote_id=%d", $vobj->vote_id);
 }
 
@@ -305,6 +308,7 @@ function _votingapi_get_raw_votes($content_type, $content_id, $value_type = NULL
   while ($vobj = db_fetch_object($result)) {
     // Give other modules a chance to alter the vote object, add additional data, etc.
     votingapi_invoke_votingapi($vobj, 'load');
+    module_invoke_all('votingapi_load', $vobj);
     $votes[] = $vobj;
   }
 
@@ -490,6 +494,7 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
   
     // Give other modules a chance to alter the collection of votes.
     votingapi_invoke_votingapi($cache, 'calculate', $votes, $content_type, $content_id);
+    module_invoke_all('votingapi_calculate', $votes, $cache, $content_type, $content_id);
     
     // Now, do the caching. Woo.
     foreach ($cache as $tag=>$types) {
@@ -502,7 +507,8 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
   
     // Give other modules a chance to act on the results of the vote totaling.
     votingapi_invoke_votingapi($cached, 'post calculate', $votes, $content_type, $content_id);
-  
+    module_invoke_all('votingapi_results', $votes, $cache, $content_type, $content_id);
+
     // If the actions module is enabled, hand off the voting results
     // for possible node promotion, user banning, or what not.
     if (module_exist('actions') && variable_get('votingapi_actions_mode', 'all') != 'none') {
@@ -525,6 +531,7 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
 
 function votingapi_format_tag($vobj) {
   $vals = votingapi_invoke_votingapi($vobj, 'format', 'tag');
+  $vals += module_invoke_all('votingapi_format', 'tag', $vobj);
   if (isset($vals[0])) {
     return $vals[0];
   }
@@ -535,6 +542,7 @@ function votingapi_format_tag($vobj) {
 
 function votingapi_format_value($vobj) {
   $vals = votingapi_invoke_votingapi($vobj, 'format', 'value');
+  $vals += module_invoke_all('votingapi_format', 'value', $vobj);
   if (isset($vals[0])) {
     return $vals[0];
   }
@@ -545,6 +553,7 @@ function votingapi_format_value($vobj) {
 
 function votingapi_format_result($vobj) {
   $vals = votingapi_invoke_votingapi($vobj, 'format', 'result');
+  $vals += module_invoke_all('votingapi_format', 'result', $vobj);
   if (isset($vals[0])) {
     return $vals[0];
   }

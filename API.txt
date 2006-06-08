@@ -74,15 +74,17 @@ Using the API (With Full Control)
     votingapi_get_content_votes()
 
 
-The VotingAPI hook (Bending the API to your will)
+VotingAPI hooks (Bending the API to your will)
 ================================================
-  insert
-  update
-  delete
-  load
-  calculate
-  post calculate
-  format (tag, value, result)
+  hook_votingapi_load
+  hook_votingapi_insert
+  hook_votingapi_update
+  hook_votingapi_delete
+
+  hook_votingapi_format
+
+  hook_votingapi_calculate
+  hook_votingapi_results
 
 
 Actions Integration

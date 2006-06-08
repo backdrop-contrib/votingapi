@@ -26,3 +26,7 @@ A new setting has been introduced -- vote result calculation can be deferred unt
 The action loading and caching infrastructure has been made much more robust, and CRUD functions are in place for reading and writing actions. voting_actions.module has now been added to facilitate direct user manipulation of action criteria, etc. It's the part that's still heavily under development. In many installations, it'll be unecessary.
 The votingapi_delete_vote() function no longer automatically recalculates. Modules using it should call recalculate manually after explicitly removing a vote.
 Those needing a consistent, stable VotingAPI should probably still stick with the 4.7 branch. This version will be branched as soon as the issues are ironed out.
+
+06/07/06
+--------
+Foundation laid for a move to discrete hooks rather than a single _votingapi function. Because each of the $ops for the function needed a wildly different set of parameters, implementing a single function was an exercise in frustration for module developers. Right now, each location that called *_votingapi() ALSO calls hook_votingapi_*(). the raw *_votingapi() function will be depricated, and likely removed from a future version.
