@@ -1,5 +1,5 @@
 <?php
-/* $Id */
+// $Id$
 
 function votingapi_rebuild_action_cache() {
   // This builds a live cache of all the currently enabled sets,

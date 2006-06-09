@@ -1,6 +1,6 @@
 <?php
 
-// $Id
+// $Id$
 
 function votingapi_install() {
   switch ($GLOBALS['db_type']) {

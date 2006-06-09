@@ -1,5 +1,5 @@
 <?php
-/* $Id */
+// $Id$
 
 function votingapi_views_tables() {
   $tables["votingapi_cache"] = array(
