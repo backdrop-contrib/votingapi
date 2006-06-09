@@ -28,6 +28,7 @@ function votingapi_install() {
           value_type varchar(20) NOT NULL,
           tag varchar(128) default 'vote',
           function varchar(128) default 'count',
+          timestamp int(11) default NULL,
           PRIMARY KEY (vote_cache_id),
           INDEX content (content_type, content_id)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
@@ -245,5 +246,11 @@ function votingapi_update_8() {
   // whoops. mis-named column.
   $ret = array();
   $ret[] = update_sql("ALTER TABLE {votingapi_action_set} CHANGE criteria_mask condition_mask varchar(8) DEFAULT 'AND';");
+  return $ret;
+}
+
+function votingapi_update_9() {
+  $ret = array();
+  $ret[] = update_sql("ALTER TABLE {votingapi_cache} ADD COLUMN int(11) default NULL;");
   return $ret;
 }

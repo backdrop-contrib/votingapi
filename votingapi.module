@@ -215,7 +215,6 @@ function votingapi_add_vote($content_type, $content_id, $value, $value_type = VO
     $vobj->vote_id, $vobj->content_type, $vobj->content_id, $vobj->value, $vobj->value_type, $vobj->tag, $vobj->uid, $vobj->timestamp, $vobj->hostname);
 
   // Give other modules a chance to act on the insert operation.
-  votingapi_invoke_votingapi($vobj, 'insert');
   votingapi_invoke('insert', $vobj);
 
   return $vobj;
@@ -238,7 +237,6 @@ function votingapi_change_vote($vobj, $value) {
   // Give other modules a chance to respond to the change.
   // Both the existing vote object and the new vote value are handed off to interested
   // modules.
-  votingapi_invoke_votingapi($vobj, 'update', $value);
   votingapi_invoke('update', $vobj, $value);
 
   // update the existing $vobj and return it.
@@ -256,7 +254,6 @@ function votingapi_delete_vote($vobj) {
   if (!(isset($vobj->content_type) && isset($vobj->content_id))) {
     $vobj = votingapi_get_vote_by_id($vobj->vote_id);
   }
-  votingapi_invoke_votingapi($vobj, 'delete');  
   votingapi_invoke('delete', $vobj);
   db_query("DELETE FROM {votingapi_vote} WHERE vote_id=%d", $vobj->vote_id);
 }
@@ -307,7 +304,6 @@ function _votingapi_get_raw_votes($content_type, $content_id, $value_type = NULL
   $result = db_query("SELECT * FROM {votingapi_vote} v WHERE content_type='%s' AND content_id=%d $filter_string", $content_type, $content_id);
   while ($vobj = db_fetch_object($result)) {
     // Give other modules a chance to alter the vote object, add additional data, etc.
-    votingapi_invoke_votingapi($vobj, 'load');
     votingapi_invoke('load', $vobj);
     $votes[] = $vobj;
   }
@@ -494,7 +490,6 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
     }
   
     // Give other modules a chance to alter the collection of votes.
-    votingapi_invoke_votingapi($cache, 'calculate', $votes, $content_type, $content_id);
     votingapi_invoke('calculate', $cache, $votes, $content_type, $content_id);
     
     // Now, do the caching. Woo.
@@ -507,7 +502,6 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
     }
   
     // Give other modules a chance to act on the results of the vote totaling.
-    votingapi_invoke_votingapi($cached, 'post calculate', $votes, $content_type, $content_id);
     votingapi_invoke('results', $cached, $votes, $content_type, $content_id);
 
     // If the actions module is enabled, hand off the voting results
@@ -531,8 +525,7 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
  */
 
 function votingapi_format_tag($vobj) {
-  $vals = votingapi_invoke_votingapi($vobj, 'format', 'tag');
-  $vals += votingapi_invoke('format', $vobj, 'tag');
+  $vals = votingapi_invoke('format', $vobj, 'tag');
   if (isset($vals[0])) {
     return $vals[0];
   }
@@ -542,8 +535,7 @@ function votingapi_format_tag($vobj) {
 }
 
 function votingapi_format_value($vobj) {
-  $vals = votingapi_invoke_votingapi($vobj, 'format', 'value');
-  $vals += votingapi_invoke('format', $vobj, 'value');
+  $vals = votingapi_invoke('format', $vobj, 'value');
   if (isset($vals[0])) {
     return $vals[0];
   }
@@ -553,8 +545,7 @@ function votingapi_format_value($vobj) {
 }
 
 function votingapi_format_result($vobj) {
-  $vals = votingapi_invoke_votingapi($vobj, 'format', 'result');
-  $vals += votingapi_invoke('format', $vobj, 'result');
+  $vals = votingapi_invoke('format', $vobj, 'result');
   if (isset($vals[0])) {
     return $vals[0];
   }
@@ -610,41 +601,17 @@ function _votingapi_insert_cache_result($content_type, $content_id, $value, $val
   $vobj->value_type = $value_type;
   $vobj->tag = $tag;
   $vobj->function = $function;
-  
-  db_query("INSERT INTO {votingapi_cache} (vote_cache_id, content_type, content_id, value, value_type, tag, function) VALUES (%d, '%s', %d, %f, '%s', '%s', '%s')", 
-    $vobj->vote_cache_id, $vobj->content_type, $vobj->content_id, $vobj->value, $vobj->value_type, $vobj->tag, $vobj->function);
+  $vobj->timestamp = time();
+
+  db_query("INSERT INTO {votingapi_cache} (vote_cache_id, content_type, content_id, value, value_type, tag, function, timestamp) VALUES (%d, '%s', %d, %f, '%s', '%s', '%s', %d)", 
+    $vobj->vote_cache_id, $vobj->content_type, $vobj->content_id, $vobj->value, $vobj->value_type, $vobj->tag, $vobj->function, $vobj->timestamp);
 
   return $vobj;
 }
 
 /**
- * Invoke a hook_votingapi() operation in all modules.
- *
- * @param &$vote
- *   A vote object.
- * @param $op
- *   A string containing the name of the votingapi operation.
- *   Currently, insert/update/delete, load, and calculate are supported.
- * @param $a3, $a4, $a5
- *   Additional arguments to pass on to the hook, after the $vote and $op arguments.
- * @return
- *   The returned value of the invoked hooks.
+ * Invoke a hook_votingapi_*() operation.
  */
-function votingapi_invoke_votingapi(&$vote, $op, $a3=NULL, $a4=NULL, $a5=NULL) {
-  $return = array();
-  foreach (module_implements('votingapi') as $name) {
-    $function = $name .'_votingapi';
-    $result = $function($vote, $op, $a3, $a4, $a5);
-    if (is_array($result)) {
-      $return = array_merge($return, $result);
-    }
-    else if (isset($result)) {
-      $return[] = $result;
-    }
-  }
-  return $return;
-}
-
 function votingapi_invoke($hook, &$a1, $a2 = NULL, $a3 = NULL, $a4 = NULL, $a5 = NULL, $a6 = NULL) {
   $hook = 'votingapi_' . $hook;
   foreach (module_implements($hook) as $module) {
@@ -686,6 +653,9 @@ function _votingapi_load_content($content_id = 0, $content_type = 'node') {
       break;
     case 'user':
       $content = user_load(array('uid' => $content_id));
+      break;
+    case 'term':
+      $content = taxonomy_get_term($content_id);
       break;
   }
   return $content;
@@ -769,3 +739,4 @@ function votingapi_vote_value_types() {
   }
   return $votingapi_vote_value_types;
 }
+ 

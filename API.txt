@@ -1,3 +1,5 @@
+$Id$
+
 What's this, now?
 =================
 VotingAPI provides a flexible, easy-to-use framework for rating, voting, moderation, and consensus-gathering modules in Drupal. It allows module developers to focus on their ideas (say, providing a 'rate this thread' widget at the bottom of each forum post) without worrying about the grunt work of storing votes, preventing ballot-stuffing, calculating the results, and so on.
@@ -14,7 +16,7 @@ Every time a user casts a vote, VotingAPI calculates the results and caches them
 Every time results are calculated for a piece of content, VotingAPI can launch actions (like promoting a node to the front page, hiding a comment that's been flagged as spam, or emailing an administrator) if specified criteria are met.
 
 4) Display
-VotingAPI integrates with Views.module, allowing you to slice and dice your site's content based on user consensus.
+VotingAPI integrates with Views.module, allowing you to slice and dice your site's content based on user consensus. It also provides convenience functions to format vote data for display to users.
 
 
 How Data Is Stored
@@ -27,12 +29,12 @@ content_type -- This *usually* corresponds to a type of Drupal content, like 'no
 content_id   -- The key ID of the content being rated.
 value        -- This is the actual value of the vote that was cast by the user.
 value_type   -- This determines how vote results are totaled. VotingAPI supports three value types by default: 'percent' votes are averaged, 'points' votes are summed up, and 'option' votes get a count of votes cast for each specific option.  Modules can use other value_types, but must implement their own calculation functions to generate vote results -- more on that later.
-tag          -- Modules can use different tags to store votes on specific aspects of a piece of content, like 'acuracy' and 'timeliness' of a news story. If you don't need to vote on multiple criteria, you can use the default value of 'vote'.
+tag          -- Modules can use different tags to store votes on specific aspects of a piece of content, like 'accuracy' and 'timeliness' of a news story. If you don't need to vote on multiple criteria, you should use the default value of 'vote'. If you use multiple tags, it is STRONGLY recommended that you provide an average or 'overall' value filed under the default 'vote' tag. This gives other modules that display voting data a single value to key on for sorting, etc.
 uid          -- The user ID of the person who voted.
 timestamp    -- The time the vote was cast.
 hostname     -- The IP address of the host the vote was cast from.
 
-Whenever a vote is cast, VotingAPI gathers up all the votes for the content_type/content_id combination, and creates a collection of cached 'result' records. Each voting result recored stores the vollowing information:
+Whenever a vote is cast, VotingAPI gathers up all the votes for the content_type/content_id combination, and creates a collection of cached 'result' records. Each voting result recorded stores the following information:
 
 content_type -- Just what you'd expect from the individual vote objects.
 content_id   -- Ditto.
@@ -40,6 +42,7 @@ value_type   -- Ditto.
 tag          -- Ditto.
 function     -- The aggregate function that's been calculated -- for example, 'average', 'sum', and so on.
 value        -- The value of the aggregate function.
+timestamp    -- The time the results were calculated.
 
 
 How it works (high-level overview)
@@ -52,14 +55,12 @@ How it works (high-level overview)
     And so on, ad infitum
 
 
-
 Using the API (The Easy Way)
 ============================
   High-level functions
     votingapi_set_vote()
     votingapi_unset_vote()
     votingapi_get_voting_results()
-
 
 
 Using the API (With Full Control)
