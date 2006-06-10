@@ -5,7 +5,14 @@
  * Lets users directly control the votingapi's integration with the actions module.
  */
  
- 
+function votingapi_debug_help($section) {
+  switch ($section) {
+    case 'admin/modules#description':
+      return t('Lets users manage votingapi\'s integration with the actions module.');
+      break;
+  } 
+}
+
  /**
  * Implementation of hook_perm().
  */
