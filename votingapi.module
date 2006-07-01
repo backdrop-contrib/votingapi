@@ -449,7 +449,7 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
   // if we're operating in cron mode, and the 'force recalculation' flag is NOT set, 
   // bail out. The cron run will pick up the results.
 
-  if (variable_get('votingapi_calculation_schedule', 'immediate') != 'cron' && $force_calculation != TRUE) {
+  if (variable_get('votingapi_calculation_schedule', 'immediate') != 'cron' || $force_calculation == TRUE) {
     // blow away the existing cache records.
     db_query("DELETE FROM {votingapi_cache} WHERE content_type = '%s' AND content_id = %d", $content_type, $content_id);
     
