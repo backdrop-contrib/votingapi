@@ -1,0 +1,3 @@
+; $Id$
+name = Voting API
+description = A shared API for modules that provide voting and rating tools to users.

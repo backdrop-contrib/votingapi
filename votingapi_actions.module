@@ -10,7 +10,7 @@ function votingapi_actions_help($section) {
     case 'admin/modules#description':
       return t('Lets users manage votingapi\'s integration with the actions module.');
       break;
-  } 
+  }
 }
 
  /**
@@ -25,8 +25,13 @@ function votingapi_actions_perm() {
  */
 function votingapi_actions_menu($may_cache) {
   $items = array();
+  require_once('votingapi_actions.inc');
 
   if ($may_cache) {
+    if (module_exists('actions') && variable_get('votingapi_actions_mode', 'all') != 'none') {
+      votingapi_rebuild_action_cache();
+    }
+
     $items[] = array('path' => 'admin/votingapi_actions', 
       'title' => t('voting actions'),
       'callback' => 'votingapi_actions_admin_page',
@@ -75,35 +80,16 @@ function votingapi_actions_menu($may_cache) {
   return $items;
 }
 
-
-/**
- * hunmonk's module dependency check: see http://drupal.org/node/54463
- */
-function votingapi_actions_form_alter($form_id, &$form) {
-  if ($form_id == 'system_modules' && !$_POST) {
-    votingapi_actions_system_module_validate($form);
+function votingapi_actions_votingapi($op, $cached, $votes, $content_type, $content_id) {
+  // If the actions module is enabled, hand off the voting results
+  // for possible node promotion, user banning, or what not.
+  if ($op == 'results') {
+    if (variable_get('votingapi_actions_mode', 'all') != 'none') {
+      _votingapi_process_actions($content_id, $content_type, $votes, $cached);
+    }
   }
 }
 
-/**
- * hunmonk's module dependency check: see http://drupal.org/node/54463
- */
-function votingapi_actions_system_module_validate(&$form) {
-  $module = 'votingapi_actions';
-  $dependencies = array('votingapi', 'actions');
-  foreach ($dependencies as $dependency) {
-      if (!in_array($dependency, $form['status']['#default_value'])) {
-        $missing_dependency = TRUE;
-        $missing_dependency_list[] = $dependency;
-      }
-  }
-  if (in_array($module, $form['status']['#default_value']) && isset($missing_dependency)) {
-    db_query("UPDATE {system} SET status = 0 WHERE type = 'module' AND name = '%s'", $module);
-    $key = array_search($module, $form['status']['#default_value']);
-    unset($form['status']['#default_value'][$key]);
-    drupal_set_message(t('The module %module was deactivated--it requires the following disabled/non-existant modules to function properly: %dependencies', array('%module' => $module, '%dependencies' => implode(', ', $missing_dependency_list))), 'error');
-  }
-}
 
 function votingapi_actions_admin_page() {
   $numSets = 25;

@@ -1,0 +1,4 @@
+; $Id$
+name = Voting API Actions
+description = Triggers actions based on user votes and ratings.
+dependencies = votingapi actions
