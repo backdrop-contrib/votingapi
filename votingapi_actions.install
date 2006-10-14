@@ -1,0 +1,63 @@
+<?php
+
+// $Id$
+
+function votingapi_actions_install() {
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      db_query("CREATE TABLE {votingapi_action_set} (
+           name varchar(64) NOT NULL,
+           source varchar(64) default NULL,
+           description varchar(255) default NULL,
+           parent_name varchar(64) default NULL,
+           required int(8) NOT NULL default '0',
+           condition_mask varchar(8) default 'AND',
+           content_type varchar(20) default NULL,
+           weight int(10) NOT NULL default 0,
+           PRIMARY KEY  (name)
+         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+
+      db_query("CREATE TABLE {votingapi_action_condition} (
+          name varchar(64) NOT NULL,
+          parent_name varchar(64) default NULL,
+          description varchar(255) NOT NULL,
+          weight int(10) NOT NULL default 0,
+          data varchar(255),
+          handler varchar(255) NOT NULL,
+          PRIMARY KEY  (name)
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+
+      db_query("CREATE TABLE {votingapi_action} (
+          parent_name varchar(64) NOT NULL,
+          aid varchar(255) NOT NULL
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      break;
+
+    case 'pgsql':
+      db_query("CREATE TABLE {votingapi_action_set} (
+           name varchar(64) NOT NULL,
+           source varchar(64) default NULL,
+           description varchar(255) default NULL,
+           parent_name varchar(64) default NULL,
+           required int4 NOT NULL default '0',
+           condition_mask varchar(8) default 'AND',
+           content_type varchar(20) default NULL,
+           weight int4 NOT NULL default 0,
+           PRIMARY KEY  (name));");
+
+      db_query("CREATE TABLE {votingapi_action_condition} (
+          name varchar(64) NOT NULL,
+          parent_name varchar(64) default NULL,
+          description varchar(255) NOT NULL,
+          weight int4 NOT NULL default 0,
+          data varchar(255),
+          handler varchar(255) NOT NULL,
+          PRIMARY KEY  (name));");
+
+      db_query("CREATE TABLE {votingapi_action} (
+          parent_name varchar(64) NOT NULL,
+          aid varchar(255) NOT NULL);");
+      break;
+  }
+}

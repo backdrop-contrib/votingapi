@@ -32,34 +32,41 @@ function votingapi_install() {
           PRIMARY KEY (vote_cache_id),
           INDEX content (content_type, content_id)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      break;
 
-      db_query("CREATE TABLE {votingapi_action_set} (
-           name varchar(64) NOT NULL,
-           source varchar(64) default NULL,
-           description varchar(255) default NULL,
-           parent_name varchar(64) default NULL,
-           required int(8) NOT NULL default '0',
-           condition_mask varchar(8) default 'AND',
-           content_type varchar(20) default NULL,
-           weight int(10) NOT NULL default 0,
-           PRIMARY KEY  (name)
-         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+    case 'pgsql':
+      db_query("CREATE TABLE {votingapi_vote} (
+          vote_id int4 NOT NULL,
+          content_type varchar(20) default NULL,
+          content_id int4 default NULL,
+          value float(10) default NULL,
+          value_type varchar(20) NOT NULL,
+          tag varchar(128) default 'vote',
+          uid int4 default '0',
+          timestamp int4 default NULL,
+          hostname varchar(128) default '0',
+          PRIMARY KEY (vote_id));");
 
-      db_query("CREATE TABLE {votingapi_action_condition} (
-          name varchar(64) NOT NULL,
-          parent_name varchar(64) default NULL,
-          description varchar(255) NOT NULL,
-          weight int(10) NOT NULL default 0,
-          data varchar(255),
-          handler varchar(255) NOT NULL,
-          PRIMARY KEY  (name)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      db_query("CREATE SEQUENCE {votingapi_vote}_seq;");
 
-      db_query("CREATE TABLE {votingapi_action} (
-          parent_name varchar(64) NOT NULL,
-          aid varchar(255) NOT NULL
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      db_query("CREATE INDEX {votingapi_vote}_content_type_id_idx
+          ON {votingapi_vote} (content_type, content_id);");
 
+      db_query("CREATE TABLE {votingapi_cache} (
+          vote_cache_id int4 NOT NULL,
+          content_type varchar(20) default NULL,
+          content_id int4 default NULL,
+          value float(10) default NULL,
+          value_type varchar(20) NOT NULL,
+          tag varchar(128) default 'vote',
+          function varchar(128) default 'count',
+          timestamp int4 default NULL,
+          PRIMARY KEY (vote_cache_id));");
+
+      db_query("CREATE SEQUENCE {votingapi_cache}_seq;");
+
+      db_query("CREATE INDEX {votingapi_cache}_content_type_id_idx
+          ON {votingapi_cache} (content_type, content_id);");
       break;
   }
 }

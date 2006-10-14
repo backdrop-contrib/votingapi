@@ -1,4 +1,5 @@
 ; $Id$
 name = Voting API Actions
-description = Triggers actions based on user votes and ratings.
+description = Triggers actions based on VotingAPI events.
 dependencies = votingapi actions
+package = Voting

@@ -5,24 +5,40 @@
  * A generalized voting API for Drupal. See README.txt for details.
  */
 
-// Constants for legacy support. Bleh.
-define('VOTINGAPI_VALUE_TYPE_PERCENT', 'percent');
-define('VOTINGAPI_VALUE_TYPE_TOKEN', 'points');
-define('VOTINGAPI_VALUE_TYPE_KEY', 'option');
-
 define('VOTINGAPI_VALUE_DEFAULT_TAG', 'vote');
 define('VOTINGAPI_VALUE_DEFAULT_TYPE', 'percent');
 
-/**
- * Implementation of hook_help().
- */
-function votingapi_help($section) {
-  switch ($section) {
-    case 'admin/modules#description':
-      return t("Provides a shared voting API for other modules.");
-    case 'admin/settings/votingapi':
-      return t("Provides a shared API for other modules to store and display community votes and ratings.");
+function votingapi_menu($may_cache) {
+  $items = array();
+  if ($may_cache) {
+    $items[] = array('path' => 'admin/voting', 
+      'title' => t('voting'),
+      'description' => t('Manage voting and rating systems for your site.'),
+      'callback' => 'votingapi_overview',
+      'type' => MENU_NORMAL_ITEM);
+
+    $items[] = array('path' => 'admin/voting/settings', 
+      'title' => t('voting api'),
+      'description' => t('Site-wide settings for the shared Voting API.'),
+      'callback' => 'drupal_get_form',
+      'callback arguments' => array('votingapi_settings'),
+      'access' => user_access('administer voting api'),
+      'type' => MENU_NORMAL_ITEM
+    );
   }
+  return $items;
+}
+
+
+
+/**
+ * Menu callback; displays the voting admin overview.
+ */
+function votingapi_overview() {
+  $menu = menu_get_item(NULL, 'admin/voting');
+  $content = system_admin_menu_block($menu);
+  $output = theme('admin_block_content', $content);
+  return $output;
 }
 
 function votingapi_settings() {
@@ -37,8 +53,8 @@ function votingapi_settings() {
       'manual' => t('Never tally votes: I am using a custom module to control vote results')
     ),
   );
-  
-  return $form;
+
+  return system_settings_form($form);
 }
 
 /**
@@ -556,14 +572,14 @@ function votingapi_invoke($hook, &$a1, $a2 = NULL, $a3 = NULL, $a4 = NULL, $a5 =
  * A helper function that loads content from type/id pairs.
  *
  * @param $content_type
- *   The content type to be loaded. node, comment, aggregator-item, and user are
- *   supported.
+ *   The content type to be loaded. node, comment, aggregator-item, user and
+ *   term are supported.
  * @param $content_id
  *   The key id of the content to be loaded.
  * @return
  *   The loaded content type.
  */
-function _votingapi_load_content($content_id = 0, $content_type = 'node') {
+function votingapi_load_content($content_id = 0, $content_type = 'node') {
   switch ($content_type) {
     case 'node':
       $content = node_load($content_id);

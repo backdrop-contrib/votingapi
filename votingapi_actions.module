@@ -5,14 +5,6 @@
  * Lets users directly control the votingapi's integration with the actions module.
  */
  
-function votingapi_actions_help($section) {
-  switch ($section) {
-    case 'admin/modules#description':
-      return t('Lets users manage votingapi\'s integration with the actions module.');
-      break;
-  }
-}
-
  /**
  * Implementation of hook_perm().
  */
@@ -26,53 +18,55 @@ function votingapi_actions_perm() {
 function votingapi_actions_menu($may_cache) {
   $items = array();
   require_once('votingapi_actions.inc');
+  require_once('votingapi_actions_ui.inc');
 
   if ($may_cache) {
-    if (module_exists('actions') && variable_get('votingapi_actions_mode', 'all') != 'none') {
-      votingapi_rebuild_action_cache();
-    }
-
-    $items[] = array('path' => 'admin/votingapi_actions', 
+    $items[] = array('path' => 'admin/voting/actions', 
       'title' => t('voting actions'),
+      'description' => t('Vote-driven triggers and actions for your site'),
       'callback' => 'votingapi_actions_admin_page',
       'access' => user_access('administer voting actions'),
       'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'admin/votingapi_actions/list', 
+    $items[] = array('path' => 'admin/voting/actions/list', 
       'title' => t('list'),
       'callback' => 'votingapi_actions_admin_page',
       'access' => user_access('administer voting actions'),
       'type' => MENU_DEFAULT_LOCAL_TASK,
       'weight' => '-1');
-    $items[] = array('path' => 'admin/votingapi_actions/add', 
+    $items[] = array('path' => 'admin/voting/actions/add', 
       'title' => t('add'),
-      'callback' => 'votingapi_actions_admin_add_page',
+      'callback' => 'drupal_get_form',
+      'callback arguments' => array('votingapi_actions_admin_edit_page', 'add'),
       'access' => user_access('administer voting actions'),
       'type' => MENU_LOCAL_TASK);
-    $items[] = array('path' => 'admin/votingapi_actions/edit', 
+    $items[] = array('path' => 'admin/voting/actions/edit', 
       'title' => t('edit action set'),
-      'callback' => 'votingapi_actions_admin_edit_page',
-      'access' => user_access('administer voting actions'),
+      'callback' => 'drupal_get_form',
+      'callback arguments' => array('votingapi_actions_admin_edit_page', 'edit'),
       'type' => MENU_CALLBACK);
-    $items[] = array('path' => 'admin/votingapi_actions/import', 
+    $items[] = array('path' => 'admin/voting/actions/import', 
       'title' => t('import'),
-      'callback' => 'votingapi_actions_admin_import_page',
+      'callback' => 'drupal_get_form',
+      'callback arguments' => array('votingapi_actions_admin_import_page'),
       'access' => user_access('administer voting actions'),
       'type' => MENU_LOCAL_TASK);
-    $items[] = array('path' => 'admin/votingapi_actions/export', 
+    $items[] = array('path' => 'admin/voting/actions/export', 
       'title' => t('export action set'),
-      'callback' => 'votingapi_actions_admin_export_page',
+      'callback' => 'drupal_get_form',
+      'callback arguments' => array('votingapi_actions_admin_export_page'),
       'access' => user_access('administer voting actions'),
       'type' => MENU_CALLBACK);
-    $items[] = array('path' => 'admin/votingapi_actions/delete', 
+    $items[] = array('path' => 'admin/voting/actions/delete', 
       'title' => t('edit action set'),
-      'callback' => 'votingapi_actions_admin_delete_page',
+      'callback' => 'drupal_get_form',
+      'callback arguments' => array('votingapi_actions_admin_delete_page'),
       'access' => user_access('administer voting actions'),
       'type' => MENU_CALLBACK);
-    $items[] = array('path' => 'admin/votingapi_actions/enable', 
+    $items[] = array('path' => 'admin/voting/actions/enable', 
       'callback' => 'votingapi_actions_admin_enable_page',
       'access' => user_access('administer voting actions'),
       'type' => MENU_CALLBACK);
-    $items[] = array('path' => 'admin/votingapi_actions/disable', 
+    $items[] = array('path' => 'admin/voting/actions/disable', 
       'callback' => 'votingapi_actions_admin_disable_page',
       'access' => user_access('administer voting actions'),
       'type' => MENU_CALLBACK);
@@ -80,311 +74,367 @@ function votingapi_actions_menu($may_cache) {
   return $items;
 }
 
-function votingapi_actions_votingapi($op, $cached, $votes, $content_type, $content_id) {
-  // If the actions module is enabled, hand off the voting results
-  // for possible node promotion, user banning, or what not.
-  if ($op == 'results') {
-    if (variable_get('votingapi_actions_mode', 'all') != 'none') {
-      _votingapi_process_actions($content_id, $content_type, $votes, $cached);
-    }
-  }
+function votingapi_actions_votingapi_recalculate($cached, $votes, $content_type, $content_id) {
+  _votingapi_process_actions($content_id, $content_type, $votes, $cached);
 }
 
-
-function votingapi_actions_admin_page() {
-  $numSets = 25;
-
-  drupal_set_title(t('administer voting actions'));
-
-  foreach (_votingapi_load_action_sets_from_db() as $name => $set) {
-    $items[] = array($name, $set['description'], theme('links', array(l(t('edit'), "admin/votingapi_actions/edit/$name"), l(t('export'), "admin/votingapi_actions/export/$name"), l(t('delete'), "admin/votingapi_actions/delete/$name"))));
-    $used[$name] = true;
-  }
-
-  if ($items) {
-    $output = theme('table', array(t('Name'), t('Description'), t('Actions')), $items, array("cellpadding" => "4"), t('User-Defined Action Sets'));
-    $output .= theme('pager', NULL, $numSets);
-  }
-  else {
-    $output .= t('<p>No action sets have currently been defined.</p>');
-  }
-
-  $output .= t('<p>Below are system default action sets; if you clone one of these, or create another set with the same name, it will override the default.</p>');
-
-  $items = array();
-  $default_actions = _votingapi_load_action_sets_from_modules();
-  $set_status = variable_get('votingapi_action_status', array());
-
-  foreach ($default_actions as $name => $set) {
-    if ($used[$name]) {
-      $status = t('Overridden');
-    }
-    else if (isset($set_status[$name])) {
-      if ($set_status[$name]) {
-        $status = 'Enabled';
-      }
-      else {
-        $status = 'Disabled';
-      }
-    }
-    else if ($set['enabled']) {
-      $status = 'Enabled';
-    }
-    else {
-      $status = 'Disabled';
-    }
-
-    if ($status == 'Enabled') {
-      $links = array(l(t('clone'), "admin/votingapi_actions/add/$name"));
-      $links[] = l(t('disable'), "admin/votingapi_actions/disable/$name");
-      $links[] = l(t('export'), "admin/votingapi_actions/export/$name");
-    }
-    else if ($status == 'Disabled') {
-      $links = array(l(t('clone'), "admin/votingapi_actions/add/$name"));
-      $links[] = l(t('enable'), "admin/votingapi_actions/enable/$name");
-      $links[] = l(t('export'), "admin/votingapi_actions/export/$name");
-    }
-
-    $items[] = array($name, $set['source'], $set['description'], $status, theme('links', $links));
-  }
-
-  if ($items) {
-    $output .= theme('table', array(t('Name'), t('Source'), t('Description'), t('Status'), t('Actions')), $items, array("cellpadding" => "4"), t('Default Action Sets'));
-  }
-  else {
-    $output .= t('<p>No action sets have currently been defined.</p>');
-  }
-
-  return $output;
-}
-
-function votingapi_actions_admin_add_page($set_name = NULL) {
-  $code = _votingapi_create_set_code($set_name);
-
-  $lines = substr_count($code, "\n");
-
-  if ($lines == 0) {
-    $lines = 20;
-  }
-
-  $form['set'] = array(
-    '#type' => 'textarea',
-    '#title' => $set_name,
-    '#default_value' => $code,
-    '#rows' => $lines
-  );
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t("Submit"),
-  );
-
-  return drupal_get_form('votingapi_actions_set_import', $form);
-}
-
-function votingapi_actions_admin_edit_page($set_name) {
-  $code = _votingapi_create_set_code($set_name);
-
-  $lines = substr_count($code, "\n");
-  $form['old_name'] = array(
-    '#type' => 'hidden',
-    '#value' => $set_name,
-  );
-
-  $form['set'] = array(
-    '#type' => 'textarea',
-    '#title' => $set_name,
-    '#default_value' => $code,
-    '#rows' => $lines
-  );
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t("Submit"),
-  );
-
-  return drupal_get_form('votingapi_actions_set_edit', $form);
-}
-
-function votingapi_actions_admin_import_page() {
-  $form['set'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Import Action Set Code'),
-    '#cols' => 60,
-    '#rows' => 20,
-    '#description' => t('Cut and paste the results of an Export action set here.'),
-  );
-
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t("Submit"),
-  );
-
-  return drupal_get_form('votingapi_actions_set_import', $form);
-}
-
-/*
- * Handle the submit button on importing an action set.
+/**
+ * Functions that integrate VotingAPI with the Actions module.
+ * Allows VotingAPI-based modules to insert nested sets of conditionals
+ * and actions to be executed whenever a voting result is fired off.
  */
-function votingapi_actions_set_import_validate($form_id, &$form) {
-  ob_start();
-  eval($form['set']);
-  ob_end_clean();
 
-  if (is_array($sets)) {
-    foreach($sets as $name => $set) {
-      if ($name) {
-        $errors = _votingapi_validate_action_set($name, $set);
-        foreach($errors as $error) {
-          form_set_error('', $error);
-        }
-      }
-    }
-}
-}
+// Called by the Voting API whenever a result is calculated.
+// Other helper functions build the actions cache from the database.
 
-/*
- * Handle the submit button on importing an action set.
- */
-function votingapi_actions_set_import_submit($formid, $form) {
-  ob_start();
-  eval($form['set']);
-  ob_end_clean();
-
-  if (is_array($sets)) {
-    foreach($sets as $name => $set) {
-      if ($name) {
-        $errors = _votingapi_validate_action_set($name, $set);
-        if (count($errors) == 0) {
-          _votingapi_insert_set($name, $set);
-          votingapi_rebuild_action_cache();
-          drupal_goto('admin/votingapi_actions');
-        }
-        else {
-          foreach ($errors as $error) {
-            drupal_set_message($error);
-          }
-        }
-      }
-      else {
-        drupal_set_message(t('Unable to get an action set out of that.'));
-        return;
-      }
-    }
-  }
-}
-
-
-/*
- * Handle the submit button on importing an action set.
- */
-function votingapi_actions_set_edit_validate($form_id, &$form) {
-  ob_start();
-  eval($form['set']);
-  ob_end_clean();
-
-  if (is_array($sets)) {
-    foreach($sets as $name => $set) {
-      if ($name) {
-        $errors = _votingapi_validate_action_set($name, $set);
-        foreach($errors as $error) {
-          form_set_error('', $error);
-        }
-      }
-    }
-  }
-}
-
-/*
- * Handle the submit button on importing an action set.
- */
-function votingapi_actions_set_edit_submit($formid, $form) {
-  ob_start();
-  eval($form['set']);
-  ob_end_clean();
-
-  if (is_array($sets)) { 
-    foreach($sets as $name => $set) {
-      if ($name) {
-        $errors = _votingapi_validate_action_set($name, $set);
-        if (count($errors) == 0) {
-          _votingapi_update_set($name, $form['old_name'], $set);
-          votingapi_rebuild_action_cache();
-          drupal_goto('admin/votingapi_actions');
-        }
-        else {
-          foreach ($errors as $error) {
-            drupal_set_message($error);
-          }
-        }
-      }
-      else {
-        drupal_set_message(t('Unable to get an action set out of that.'));
-        return;
-      }
-    }
-  }
-}
-
-function votingapi_actions_admin_export_page($set_name) {
-  $code = _votingapi_create_set_code($set_name);
-
-  $lines = substr_count($code, "\n");
-  $form['code'] = array(
-    '#type' => 'textarea',
-    '#title' => $set['name'],
-    '#default_value' => $code,
-    '#rows' => $lines
-  );
-  return drupal_get_form('votingapi_actions_set_export', $form);
-}
-
-function votingapi_actions_admin_delete_page($set_name) {
-  $form['set'] = array('#type' => 'value', '#value' => $set_name);
-  return confirm_form('votingapi_actions_admin_delete_confirm', $form,
-    t('Are you sure you want to delete %title?', array('%title' => $set_name)), 
-    $_GET['destination'] ? $_GET['destination'] : 'admin/votingapi_actions', 
-    t('This action cannot be undone.'),
-    t('Delete'), t('Cancel')  
-  );
-}
-
-/*
- * Handle the submit button to delete a view.
- */
-function votingapi_actions_admin_delete_confirm_submit($formid, $form) {
-  if ($form['confirm']) {
-    $name = $form['set'];
-    $sets = _votingapi_load_action_sets_from_db();
-    if ($sets[$name]) {
-      _votingapi_delete_set($name, $set[$name]);
-      votingapi_rebuild_action_cache();
-    }
-    drupal_goto('admin/votingapi_actions');
-  }
-}
-
-function votingapi_actions_admin_enable_page($set_name) {
-  _votingapi_set_action_status($set_name, true);
-  drupal_goto('admin/votingapi_actions');
-}
-
-function votingapi_actions_admin_disable_page($set_name) {
-  _votingapi_set_action_status($set_name, false);
-  drupal_goto('admin/votingapi_actions');
-}
-
-function _votingapi_create_set_code($set_name) {
+function _votingapi_process_actions($content_id, $content_type, $votes, $results) {
   $data = cache_get('votingapi_action_sets');
   $action_sets = unserialize($data->data);
-  $set = $action_sets[$set_name];
-  if ($set) {
-    unset($set['name']);
-    $code = "\n\$sets = array(\n";
-    $code .= "'$set_name' => ";
-    ob_start();
-    var_export($set);
-    $code .= ob_get_clean();
-    ob_end_clean();
-    $code .= "\n);\n";
+
+  if (!is_array($action_sets)) {
+    return;
   }
-  return $code;
+
+  $content = _votingapi_load_content($content_id, $content_type);
+  if ($content == NULL) {
+    return;
+  }
+
+  foreach ($action_sets as $action_set) {
+    if ($action_set['content_type'] == $content_type) {
+      $actions = array();
+      _votingapi_process_action_set($content, $votes, $results, $action_set, $actions);
+      foreach ($actions as $action) {
+        actions_do($action, $content);
+      }
+    }
+  }
+}
+
+// An internal utility function that calls itself recursively to evaluate a
+// tree of voting action sets. $actions is passed in by references, and accumulates
+// actions-to-initiate. The calling function is responsible for firing them off.
+
+function _votingapi_process_action_set($content = NULL, $votes = array(), $results = array(), $action_set = NULL, &$actions) {
+  // a little safety code to catch malformed sets.
+  if (!isset($action_set['conditions'])) {
+    $action_set['conditions'] = array();
+  }
+  if (!isset($action_set['actions'])) {
+    $action_set['actions'] = array();
+  }
+  if (!isset($action_set['subsets'])) {
+    $action_set['subsets'] = array();
+  }
+
+  // Here, we iterate through every rule. The value starts as true,
+  // and a single false will trip it to failure state.
+  foreach($action_set['conditions'] as $condition) {
+    $function = $condition['handler'];
+    if (function_exists($function)) {
+      // this calls a handler with several ops. 'process' and 'input' are the two i've thought of.
+      $conditions_result = $function('process', $content, $votes, $results, $condition);
+    }
+    else {
+      $conditions_result = FALSE;
+    }
+    if ($action_set['condition_mask'] == 'AND') {
+      if ($conditions_result === FALSE) {
+        // bail out to avoid unecessary processing.
+        return FALSE;
+      }
+      else {
+        // AND the set result and rule result together.
+        if (isset($set_result)) {
+          $set_result = $set_result && $conditions_result;
+        }
+        else {
+          $set_result = $conditions_result;
+        }
+      }
+    }
+    else if ($action_set['condition_mask'] == 'OR') {
+      // OR the set result and rule result together.
+      $set_result = $set_result || $conditions_result;
+    }
+  }
+ 
+  if ($set_result == TRUE) {
+    // Now check sub-actions.
+
+    foreach($action_set['subsets'] as $subset) {
+      // check the required flag of the subset. if it is, evaluate it.
+      if ($subset['required'] == TRUE) {
+        $set_result = $set_result && _votingapi_process_action_set($content, $votes, $results, $subset, $actions);
+        if ($set_result == FALSE) {
+          return FALSE;
+        }
+      }
+    }
+
+    if ($set_result == TRUE) {
+      // It's still true after executing required subsets. Add the actions, then process optional subsets.
+      foreach ($action_set['actions'] as $action) {
+        $actions[] = $action;
+      }
+      
+      foreach($action_set['subsets'] as $subset) {
+        // now handle the non-required subsets
+        if ($subset['required'] == FALSE) {
+          _votingapi_process_action_set($content, $votes, $results, $subset, $actions);
+        }
+      }
+    }
+  }
+
+  return $set_result;
+}
+
+/**
+ * Utility functions that manage the raw voting actions data..
+ */
+
+function votingapi_rebuild_action_cache() {
+  // This builds a live cache of all the currently enabled sets,
+  // first from the database, then from module 'defaults'. Any
+  // set saved in the DB is assumed to be enabled, and any DB
+  // set overrides a module set with the same name.
+
+  $sets = _votingapi_load_action_sets_from_db();
+  $module_sets = _votingapi_load_action_sets_from_modules();
+  
+  foreach($sets as $name => $set) {
+    $active_sets[$name] = $set;
+  }
+
+  $status_list = variable_get('votingapi_action_status', array());
+  foreach($module_sets as $name => $set) {
+    if (!in_array($name, array_keys($sets))) {
+      if ($status_list[$name]) {
+        $sets[$name] = $set;
+      }
+    }
+  }
+  cache_set("votingapi_action_sets", 'cache', serialize($sets));
+}
+
+function _votingapi_get_action_status($set_name) {
+  $status_list = variable_get('votingapi_action_status', array());
+  return $status_list[$set_name];
+}
+
+function _votingapi_set_action_status($set_name, $status) {
+  $status_list = variable_get('votingapi_action_status', array());
+  $status_list[$set_name] = $status;
+  variable_set('votingapi_action_status', $status_list);
+  votingapi_rebuild_action_cache();
+}
+
+function _votingapi_load_action_sets_from_modules() {
+  $sets = array();
+  $status_list = variable_get('votingapi_action_status', array());
+
+  $set_data = module_invoke_all('votingapi_action_sets');
+  foreach ($set_data as $name => $set) {
+    $sets[$name] = $set;
+    if (!isset($status_list[$name])) {
+      $status_list[$name] = $set['enabled'];
+    }
+  }
+  
+  variable_set('votingapi_action_status', $status_list);
+  return $sets;
+}
+
+function _votingapi_load_action_sets_from_db($parent = '') {
+  $sets = array();
+  $result = db_query("SELECT * FROM {votingapi_action_set} WHERE parent_name = '%s' ORDER BY weight, name ASC", $parent);   
+
+  while ($set = db_fetch_array($result)) {
+    $set_name = $set['name'];
+    unset($set['name']);
+
+    $condition_result = db_query("SELECT * FROM {votingapi_action_condition} WHERE parent_name = '%s' ORDER BY weight ASC", $set_name);
+    while ($condition = db_fetch_array($condition_result)) {
+      $condition['data'] = unserialize($condition['data']);
+      $name = $condition['name'];
+      unset($condition['name']);
+      $set['conditions'][$name] = $condition;
+    }
+
+    $action_result = db_query("SELECT * FROM {votingapi_action} WHERE parent_name = '%s' ORDER BY aid ASC", $set_name);
+    while ($action = db_fetch_array($action_result)) {
+      $set['actions'][] = $action['aid'];
+    }
+
+    $set->subsets = _votingapi_load_action_sets_from_db($set_name);
+    $sets[$set_name] = $set;
+  }
+  
+  return $sets;
+}
+
+function _votingapi_insert_set($name, $set) {
+  $sql = "INSERT INTO {votingapi_action_set} ";
+  $sql .= "(name, parent_name, content_type, source, description, condition_mask, required, weight)";
+  $sql .= "VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %d, %d)";
+  
+  db_query($sql, $name, $set['parent_name'], $set['content_type'],
+    $set['source'], $set['description'], $set['condition_mask'], 
+    $set['required'], $set['weight']);
+  
+  if (is_array($set['conditions'])) {
+    foreach ($set['conditions'] as $cname => $condition) {
+      $condition['parent_name'] = $name;
+      _votingapi_insert_condition($cname, $condition);
+    }
+  }
+  
+  if (is_array($set['actions'])) {
+    foreach ($set['actions'] as $action) {
+      db_query("INSERT INTO {votingapi_action} (parent_name, aid) VALUES ('%s', '%s')", $name, $action);
+    }
+  }
+
+  if (is_array($set['sets'])) {
+    foreach ($set['sets'] as $sname => $subset) {
+      $subset['parent_name'] = $name;
+      _votingapi_insert_set($sname, $subset);
+    }
+  }
+}
+
+function _votingapi_insert_condition($name, $condition) {
+  $sql = "INSERT INTO {votingapi_action_condition} ";
+  $sql .= "(name, parent_name, description, data, handler, weight)";
+  $sql .= "VALUES ('%s', '%s', '%s', '%s', '%s', %d)";
+
+  db_query($sql, $name, $condition['parent_name'], $condition['description'],
+    serialize($condition['data']), $condition['handler'], $condition['weight']);
+}
+
+function _votingapi_update_set($name, $old_name, $set) {
+  $sql = "UPDATE {votingapi_action_set} SET ";
+  $sql .= "name = '%s', parent_name = '%s', content_type = '%s', source = '%s', description = '%s', condition_mask = '%s', ";
+  $sql .= "required = %d, weight = %d ";
+  $sql .= "WHERE name = '%s'";
+  
+  db_query($sql, $name, $set['parent_name'], $set['content_type'],
+    $set['source'], $set['description'], $set['condition_mask'], 
+    $set['required'], $set['weight'], $old_name);
+
+  db_query("DELETE FROM {votingapi_action_condition} WHERE parent_name = '%s'", $old_name);
+  if (is_array($set['conditions'])) {
+    foreach ($set['conditions'] as $cname => $condition) {
+      $condition['parent_name'] = $name;
+      _votingapi_insert_condition($cname, $condition);
+    }
+  }
+
+  db_query("DELETE FROM {votingapi_action} WHERE parent_name = '%s'", $old_name);
+  if (is_array($set['actions'])) {
+    foreach ($set['actions'] as $action) {
+      db_query("INSERT INTO {votingapi_action} (parent_name, aid) VALUES ('%s', '%s')", $name, $action);
+    }
+  }
+  
+  if (is_array($set['sets'])) {
+    foreach ($set['sets'] as $sname => $subset) {
+      $subset['parent_name'] = $name;
+      if ($subset['new']) {
+        _votingapi_insert_set($sname , $subset);
+      }
+      else {
+        _votingapi_update_set($sname , $subset);
+      }
+    }
+  }
+
+  if (is_array($set['deleted_sets'])) {
+    foreach ($set['deleted_sets'] as $sname => $subset) {
+      $subset['parent_name'] = $name;
+      _votingapi_delete_set($sname , $subset);
+    }
+  }
+}
+
+function _votingapi_update_condition($name, $condition) {
+  $sql = "UPDATE {votingapi_action_condition} SET ";
+  $sql .= "name = '%s', parent_name = '%s', description = '%s', data = '%s', handler = '%s', weight = %d ";
+  $sql .= "WHERE name = '%s' AND parent_name = '%s'";
+  
+  db_query($sql, $name, $condition['parent_name'], $condition['description'],
+    serialize($condition['data']), $condition['handler'], $condition['weight'], 
+    $name, $condition['parent_name']);
+}
+
+function _votingapi_delete_set($name, $set) {
+  if (is_array($set['sets'])) {
+    foreach ($set['sets'] as $sname => $subset) {
+      $subset['parent_name'] = $name;
+      _votingapi_delete_set($sname, $subset);
+    }
+  }
+
+  db_query("DELETE FROM {votingapi_action_condition} WHERE parent_name = '%s'", $name);
+  db_query("DELETE FROM {votingapi_action} WHERE parent_name = '%s'", $name);
+  db_query("DELETE FROM {votingapi_action_set} WHERE name = '%s'", $name);
+}
+
+function _votingapi_validate_action_set($name, $set) {
+  $errors = array();
+
+  if (!is_array($set)) {
+    $errors[] = "The set '$name' is not an array!";
+    return $errors;
+  }
+  
+  if (!isset($set['content_type']) && !isset($set['parent_name'])) {
+    $errors[] = "The set '$name' must have a content_type.";
+  }
+
+  if ($set['condition_mask'] != 'AND' && $set['condition_mask'] != 'OR') {
+    $errors[] = "The set '$name' must define a condition_mask of 'AND' or 'OR'.";
+  }
+
+  if (!isset($set['conditions'])) {
+    $errors[] = "The set '$name' has no conditions defined.";
+  }
+  else {
+    if (count($set['conditions']) == 0) {
+      $errors[] = "The set '$name' has no conditions defined.";
+    }
+  }
+
+  if (is_array($set['conditions'])) {
+    foreach ($set['conditions'] as $cname => $condition) {
+      $errors = array_merge($errors, _votingapi_validate_action_condition($cname, $condition));
+    }
+  }
+
+  if (is_array($set['sets'])) {
+    foreach ($set['sets'] as $subname => $subset) {
+      $errors = array_merge($errors, _votingapi_validate_action_set($subname, $subset));
+    }
+  }
+  return $errors;
+}
+
+function _votingapi_validate_action_condition($name, $condition) {
+  $errors = array();
+  if (!is_array($condition)) {
+    $errors[] = "The condition '$name' is not an array!";
+    return $errors;
+  }
+
+  if (!isset($condition['handler'])) {
+    $errors[] = "The condition '$name' has no handler.";
+  }
+
+  if (!function_exists($condition['handler'])) {
+    $handler = $condition['handler'];
+    $errors[] = "The condition '$name' has an invalid handler ($handler).";
+  }
+
+  return $errors;
 }
