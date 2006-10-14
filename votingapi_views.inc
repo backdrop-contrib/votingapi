@@ -550,3 +550,125 @@ function theme_vote_cache_properties($element) {
     return '<div class="container-inline">' . $element['#children'] . '</div>';
   }
 }
+
+
+/**
+ * The following three functions can be used by external modules, themes,
+ * etc. to display formatted results for a vote object or a vote result
+ * object. It's up to a VotingAPI module to catch the 'format' $op, and
+ * return something that makes sense. The first module that responds 'wins',
+ * so try to filter your responses sensibly. If it's not a voting object
+ * your module would normally create, just return;. The next module can
+ * take a stab.
+ */
+
+function votingapi_format_tag($vobj) {
+  $vals = votingapi_invoke('format', $vobj, 'tag');
+  if (isset($vals[0])) {
+    return $vals[0];
+  }
+  else {
+    return ucfirst($vobj->tag);
+  }
+}
+
+function votingapi_format_value($vobj) {
+  $vals = votingapi_invoke('format', $vobj, 'value');
+  if (isset($vals[0])) {
+    return $vals[0];
+  }
+  else {
+    return $vobj->value;
+  }
+}
+
+function votingapi_format_result($vobj) {
+  $vals = votingapi_invoke('format', $vobj, 'result');
+  if (isset($vals[0])) {
+    return $vals[0];
+  }
+  else {
+    return $vobj->value;
+  }
+}
+
+
+// A series of helper functions mostly useful for making selectable lists of 
+// vote and cache properties.
+
+function votingapi_cache_functions() {
+  static $votingapi_cache_functions;
+  if (!is_array($votingapi_cache_functions)) {
+    $votingapi_cache_functions = array();
+    $votingapi_cache_functions = array(
+      'average' => 'Average vote value',
+      'count' => 'Number of votes',
+      'sum' => 'Sum of vote values',
+    );
+
+    $result = db_query('SELECT DISTINCT function FROM {votingapi_cache}');
+    while ($fnc = db_fetch_object($result)) {
+      if (!isset($votingapi_cache_functions[$fnc->function])) {
+        $votingapi_cache_functions[$fnc->function] = $fnc->function;
+      }
+    }
+  }
+  return $votingapi_cache_functions;
+}
+
+function votingapi_cache_tags() {
+  static $votingapi_cache_tags;
+  if (!is_array($votingapi_cache_tags)) {
+    $votingapi_cache_tags[0] = '-- Any tag --';
+    $result = db_query('SELECT DISTINCT tag FROM {votingapi_cache}');
+    while ($fnc = db_fetch_object($result)) {
+      if (!isset($votingapi_cache_tags[$fnc->tag])) {
+        $votingapi_cache_tags[$fnc->tag] = $fnc->tag;
+      }
+    }
+  }
+  return $votingapi_cache_tags;
+}
+
+function votingapi_cache_value_types() {
+  static $votingapi_cache_value_types;
+  if (!is_array($votingapi_cache_value_types)) {
+    $votingapi_cache_value_types[0] = '-- Any value type --';
+    $result = db_query('SELECT DISTINCT value_type FROM {votingapi_cache}');
+    while ($fnc = db_fetch_object($result)) {
+      if (!isset($votingapi_cache_value_types[$fnc->value_type])) {
+        $votingapi_cache_value_types[$fnc->value_type] = $fnc->value_type;
+      }
+    }
+  }
+  return $votingapi_cache_value_types;
+}
+
+function votingapi_vote_tags() {
+  static $votingapi_vote_tags;
+  if (!is_array($votingapi_vote_tags)) {
+    $votingapi_vote_tags[0] = '-- Any tag --';
+    $result = db_query('SELECT DISTINCT tag FROM {votingapi_vote}');
+    while ($fnc = db_fetch_object($result)) {
+      if (!isset($votingapi_vote_tags[$fnc->tag])) {
+        $votingapi_vote_tags[$fnc->tag] = $fnc->tag;
+      }
+    }
+  }
+  return $votingapi_vote_tags;
+}
+
+function votingapi_vote_value_types() {
+  static $votingapi_vote_value_types;
+  if (!is_array($votingapi_vote_value_types)) {
+    $votingapi_vote_value_types[0] = '-- Any value type --';
+    $result = db_query('SELECT DISTINCT value_type FROM {votingapi_vote}');
+    while ($fnc = db_fetch_object($result)) {
+      if (!isset($votingapi_vote_value_types[$fnc->value_type])) {
+        $votingapi_vote_value_types[$fnc->value_type] = $fnc->value_type;
+      }
+    }
+  }
+  return $votingapi_vote_value_types;
+}
+ 
