@@ -12,13 +12,13 @@ function votingapi_menu($may_cache) {
   $items = array();
   if ($may_cache) {
     $items[] = array('path' => 'admin/voting', 
-      'title' => t('voting'),
+      'title' => t('Votes and Ratings'),
       'description' => t('Manage voting and rating systems for your site.'),
       'callback' => 'votingapi_overview',
       'type' => MENU_NORMAL_ITEM);
 
     $items[] = array('path' => 'admin/voting/settings', 
-      'title' => t('voting api'),
+      'title' => t('Voting API'),
       'description' => t('Site-wide settings for the shared Voting API.'),
       'callback' => 'drupal_get_form',
       'callback arguments' => array('votingapi_settings'),
