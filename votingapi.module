@@ -5,40 +5,31 @@
  * A generalized voting API for Drupal. See README.txt for details.
  */
 
-define('VOTINGAPI_VALUE_DEFAULT_TAG', 'vote');
-define('VOTINGAPI_VALUE_DEFAULT_TYPE', 'percent');
-
-function votingapi_menu($may_cache) {
+function votingapi_menu() {
   $items = array();
-  if ($may_cache) {
-    $items[] = array('path' => 'admin/voting', 
-      'title' => t('Votes and Ratings'),
-      'description' => t('Manage voting and rating systems for your site.'),
-      'callback' => 'votingapi_overview',
-      'type' => MENU_NORMAL_ITEM);
-
-    $items[] = array('path' => 'admin/voting/settings', 
-      'title' => t('Voting API'),
-      'description' => t('Site-wide settings for the shared Voting API.'),
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('votingapi_settings'),
-      'access' => user_access('administer voting api'),
-      'type' => MENU_NORMAL_ITEM
-    );
-  }
+  $items['admin/settings/votingapi'] = array(
+    'title' => 'Voting API',
+    'description' => 'Global settings for the Voting API.',
+    'page callback' => 'drupal_get_form',
+    'callback arguments' => array('votingapi_settings'),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer voting api'),
+    'type' => MENU_NORMAL_ITEM
+  );
   return $items;
 }
 
-
+function votingapi_init() {
+  if (module_exists('views')) {
+    require_once(drupal_get_path('module', 'votingapi') .'/votingapi_views.inc');
+  }
+}
 
 /**
- * Menu callback; displays the voting admin overview.
- */
-function votingapi_overview() {
-  $menu = menu_get_item(NULL, 'admin/voting');
-  $content = system_admin_menu_block($menu);
-  $output = theme('admin_block_content', $content);
-  return $output;
+* Implementation of hook_perm
+*/
+function votingapi_perm() {
+  return array('administer voting api');
 }
 
 function votingapi_settings() {
@@ -83,7 +74,7 @@ function votingapi_set_vote($content_type, $content_id, $vote, $uid = NULL, $rec
   }
   
   if (is_array($vote)) {
-    foreach($vote as $vobj) {
+    foreach ($vote as $vobj) {
       $user_votes[] = votingapi_set_vote($content_type, $content_id, $vobj, $uid, TRUE);
     }
   }
@@ -190,11 +181,11 @@ function votingapi_add_vote($content_type, $content_id, $value, $value_type = VO
   $vobj->tag = $tag;
   $vobj->uid = $uid;
   $vobj->timestamp = time();
+
+  $vobj->hostname = $_SERVER['REMOTE_ADDR'];
+  // Append internal IP if it exists.
   if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-    $vobj->hostname = $_SERVER['HTTP_X_FORWARDED_FOR'];
-  }
-  else {
-    $vobj->hostname = $_SERVER['REMOTE_ADDR'];
+    $vobj->hostname .= '-'. $_SERVER['HTTP_X_FORWARDED_FOR'];
   }
 
   db_query("INSERT INTO {votingapi_vote} (vote_id, content_type, content_id, value, value_type, tag, uid, timestamp, hostname) VALUES (%d, '%s', %d, %f, '%s', '%s', %d, %d, '%s')", 
@@ -263,7 +254,7 @@ function votingapi_delete_votes($votes = array()) {
  */
 function _votingapi_get_raw_votes($content_type, $content_id, $value_type = NULL, $tag_list = NULL, $uid = NULL) {
   if ($tag_list) {
-    $filter_string .= " AND v.tag IN ('" . implode("','",$tag_list) . "')";
+    $filter_string .= " AND v.tag IN ('". implode("','", $tag_list) ."')";
   }
   
   // Still not sure all this checking is necessary, but a quick cast can't hurt.
@@ -278,12 +269,12 @@ function _votingapi_get_raw_votes($content_type, $content_id, $value_type = NULL
       }
     }
     if (count($uid_list)) {
-      $filter_string .= " AND v.uid IN ('" . implode("','",$uid_list) . "')";
+      $filter_string .= " AND v.uid IN ('". implode("','", $uid_list) ."')";
     }
   }
 
   if (isset($value_type)) {
-    $filter_string .= " AND v.value_type = '" . $value_type . "'";
+    $filter_string .= " AND v.value_type = '". $value_type ."'";
   }
 
   $votes = array();
@@ -443,7 +434,7 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
     $votes = _votingapi_get_raw_votes($content_type, $content_id);
     
     // Loop through, calculate per-type and per-tag totals, etc.
-    foreach($votes as $vote) {
+    foreach ($votes as $vote) {
       switch ($vote->value_type) {
         case 'percent':
           $cache[$vote->tag][$vote->value_type]['count'] += 1;
@@ -463,8 +454,8 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
    
     // Do a quick loop through to calculate averages.
     // This is also a good example of how external modules can do their own processing.
-    foreach ($cache as $tag=>$types) {
-      foreach ($types as $type=>$functions) {
+    foreach ($cache as $tag => $types) {
+      foreach ($types as $type => $functions) {
         if ($type == 'percent' || $type == 'points') {
           $cache[$tag][$type]['average'] = $functions['sum'] / $functions['count'];
         }
@@ -479,9 +470,9 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
     votingapi_invoke('calculate', $cache, $votes, $content_type, $content_id);
     
     // Now, do the caching. Woo.
-    foreach ($cache as $tag=>$types) {
-      foreach ($types as $type=>$functions) {
-        foreach ($functions as $function=>$value) {
+    foreach ($cache as $tag => $types) {
+      foreach ($types as $type => $functions) {
+        foreach ($functions as $function => $value) {
          $cached[] = _votingapi_insert_cache_result($content_type, $content_id, $value, $type, $tag, $function);
         }
       }
@@ -553,9 +544,9 @@ function _votingapi_insert_cache_result($content_type, $content_id, $value, $val
  * Invoke a hook_votingapi_*() operation.
  */
 function votingapi_invoke($hook, &$a1, $a2 = NULL, $a3 = NULL, $a4 = NULL, $a5 = NULL, $a6 = NULL) {
-  $hook = 'votingapi_' . $hook;
+  $hook = 'votingapi_'. $hook;
   foreach (module_implements($hook) as $module) {
-    $function = $module . '_' . $hook;
+    $function = $module .'_'. $hook;
     $result = ($function($a1, $a2, $a3, $a4, $a5, $a6));
 
     if (is_array($result)) {
@@ -601,3 +592,14 @@ function votingapi_load_content($content_id = 0, $content_type = 'node') {
   return $content;
 }
 
+function _votingapi_distinct_values($field = 'tag', $table = 'vote') {
+  static $cached;
+  if (!isset($cached[$table][$field])) {
+    $results = db_query("SELECT DISTINCT %s FROM {votingapi_%s}", $field, $table);
+    while ($result = db_fetch_object($results)) {
+      $cached[$table][$field][] = $result->$field;
+    }
+    
+  }
+  return $cached[$table][$field];
+}

@@ -1,0 +1,44 @@
+<?php
+// $Id$
+
+function votigapi_schema() {
+  $schema['votingapi_vote'] = array(
+    'fields' => array(
+      'vote_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'content_type' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'node'),
+      'content_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'value' => array('type' => 'float', 'not null' => TRUE, 'default' => 0),
+      'value_type' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'percent'),
+      'tag' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'vote'),
+      'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'vote_source' => array('type' => 'varchar', 'length' => 255),
+    ),
+    'primary key' => array('vote_id'),
+    'indexes' => array(
+      'content' => array('content_type', 'content_id'),
+      'content_uid' => array('content_type', 'content_id', 'uid'),
+      'content_source' => array('content_type', 'content_id', 'vote_source'),
+    ),
+  );
+  $schema['votingapi_cache'] = array(
+    'fields' => array(
+      'vote_cache_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'content_type' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'node'),
+      'content_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'value' => array('type' => 'float', 'not null' => TRUE, 'default' => 0),
+      'value_type' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'percent'),
+      'tag' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'vote'),
+      'function' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => ''),
+      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+    ),
+    'primary key' => array('vote_cache_id'),
+    'indexes' => array(
+      'content' => array('content_type', 'content_id'),
+      'content_function' => array('content_type', 'content_id', 'function'),
+    ),
+  );
+  return $schema;
+}
+
+

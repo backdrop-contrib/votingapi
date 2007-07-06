@@ -30,3 +30,7 @@ Those needing a consistent, stable VotingAPI should probably still stick with th
 06/07/06
 --------
 Foundation laid for a move to discrete hooks rather than a single _votingapi function. Because each of the $ops for the function needed a wildly different set of parameters, implementing a single function was an exercise in frustration for module developers. Right now, each location that called *_votingapi() ALSO calls hook_votingapi_*(). the raw *_votingapi() function will be depricated, and likely removed from a future version.
+
+07/05/07
+--------
+First run at a Drupal 6 compatible version (after an ill-fated accidental checkin on the D5 branch). Once this works, work will start on v2.0. The plan is to add anonymous voting support and cleaner function signatures by passing in full vote objects rather than long param lists. It's uncertain whether 1.x will be released for Drupal 6 directly, or whether I'll just get the 2.0 version out for it, since modules will already need to be updated.

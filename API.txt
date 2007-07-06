@@ -86,11 +86,3 @@ VotingAPI hooks (Bending the API to your will)
 
   hook_votingapi_calculate(&$results, $votes, $content_type, $content_id)
   hook_votingapi_results($results, $votes, $content_type, $content_id)
-
-
-Actions Integration
-===================
-  Providing default actions
-  Exposing custom action handlers
-
-  hook_votingapi_action_sets()

@@ -3,72 +3,7 @@
 // $Id$
 
 function votingapi_install() {
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      db_query("CREATE TABLE {votingapi_vote} (
-          vote_id int(10) unsigned NOT NULL,
-          content_type varchar(20) default NULL,
-          content_id int(10) unsigned default NULL,
-          value float(10) default NULL,
-          value_type varchar(20) NOT NULL,
-          tag varchar(128) default 'vote',
-          uid int(10) unsigned default '0',
-          timestamp int(11) default NULL,
-          hostname varchar(128) default '0',
-          PRIMARY KEY (vote_id),
-          INDEX content (content_type, content_id)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-
-      db_query("CREATE TABLE {votingapi_cache} (
-          vote_cache_id int(10) unsigned NOT NULL,
-          content_type varchar(20) default NULL,
-          content_id int(10) unsigned default NULL,
-          value float(10) default NULL,
-          value_type varchar(20) NOT NULL,
-          tag varchar(128) default 'vote',
-          function varchar(128) default 'count',
-          timestamp int(11) default NULL,
-          PRIMARY KEY (vote_cache_id),
-          INDEX content (content_type, content_id)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      break;
-
-    case 'pgsql':
-      db_query("CREATE TABLE {votingapi_vote} (
-          vote_id int4 NOT NULL,
-          content_type varchar(20) default NULL,
-          content_id int4 default NULL,
-          value float(10) default NULL,
-          value_type varchar(20) NOT NULL,
-          tag varchar(128) default 'vote',
-          uid int4 default '0',
-          timestamp int4 default NULL,
-          hostname varchar(128) default '0',
-          PRIMARY KEY (vote_id));");
-
-      db_query("CREATE SEQUENCE {votingapi_vote}_seq;");
-
-      db_query("CREATE INDEX {votingapi_vote}_content_type_id_idx
-          ON {votingapi_vote} (content_type, content_id);");
-
-      db_query("CREATE TABLE {votingapi_cache} (
-          vote_cache_id int4 NOT NULL,
-          content_type varchar(20) default NULL,
-          content_id int4 default NULL,
-          value float(10) default NULL,
-          value_type varchar(20) NOT NULL,
-          tag varchar(128) default 'vote',
-          function varchar(128) default 'count',
-          timestamp int4 default NULL,
-          PRIMARY KEY (vote_cache_id));");
-
-      db_query("CREATE SEQUENCE {votingapi_cache}_seq;");
-
-      db_query("CREATE INDEX {votingapi_cache}_content_type_id_idx
-          ON {votingapi_cache} (content_type, content_id);");
-      break;
-  }
+  drupal_install_schema('votingapi');
 }
 
 /**
@@ -258,7 +193,51 @@ function votingapi_update_8() {
 
 function votingapi_update_9() {
   $ret = array();
-  $ret[] = update_sql("ALTER TABLE {votingapi_cache} ADD COLUMN timestamp int(11) default NULL;");
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+        $ret[] = update_sql("ALTER TABLE {votingapi_cache} ADD COLUMN timestamp int(11) default NULL;");
+      break;
+    case 'pgsql':
+        $ret[] = update_sql("ALTER TABLE {votingapi_cache} ADD COLUMN timestamp int4 default NULL;");
+      break;
+  }
   $ret[] = update_sql("UPDATE {votingapi_cache} SET timestamp = " . time() . " WHERE timestamp IS NULL;");
   return $ret;
+}
+
+function _votingapi_update_6001() {
+  $ret = array();
+
+  // Rename the 'hostname' field to 'vote_source' for more flexibility
+  db_change_field($ret, 'votingapi_vote', 'hostname', 'vote_source', array('type' => 'varchar', 'length' => 255));
+
+  // Update fields and indexes
+  db_update_field($ret, 'votingapi_vote', 'vote_id');
+  db_update_field($ret, 'votingapi_vote', 'content_type');
+  db_update_field($ret, 'votingapi_vote', 'content_id');
+  db_update_field($ret, 'votingapi_vote', 'value');
+  db_update_field($ret, 'votingapi_vote', 'value_type');
+  db_update_field($ret, 'votingapi_vote', 'tag');
+  db_update_field($ret, 'votingapi_vote', 'uid');
+  db_update_field($ret, 'votingapi_vote', 'timestamp');
+  db_update_field($ret, 'votingapi_vote', 'vote_source');
+
+  // Update fields and indexes
+  db_update_field($ret, 'votingapi_cache', 'vote_cache_id');
+  db_update_field($ret, 'votingapi_cache', 'content_type');
+  db_update_field($ret, 'votingapi_cache', 'content_id');
+  db_update_field($ret, 'votingapi_cache', 'value');
+  db_update_field($ret, 'votingapi_cache', 'value_type');
+  db_update_field($ret, 'votingapi_cache', 'tag');
+  db_update_field($ret, 'votingapi_cache', 'function');
+  db_update_field($ret, 'votingapi_cache', 'timestamp');
+
+  // Yes, we loves us the SchemaAPI.
+  return $ret;
+}
+
+function votingapi_uninstall() {
+  db_query("DROP TABLE {votingapi_vote}");
+  db_query("DROP TABLE {votingapi_cache}");
 }
