@@ -148,34 +148,6 @@ function votingapi_set_vote($votes = array(), $silent = FALSE) {
 }
 
 /**
- * Populate the value of any unset vote properties.
- *
- * @param $vobj
- *   A single vote object.
- * @return
- *   A vote object with all required properties filled in with
- *   their default values.
- */
-function _votingapi_prep_vote($vobj) {
-  global $user;
-  if (empty($vobj->prepped)) {
-    $varray = (array)$vobj;
-
-    $vote = array();
-    $vote['content_type'] = 'node';
-    $vote['value_type'] = 'percent';
-    $vote['tag'] = 'vote';
-    $vote['uid'] = $user->uid;
-    $vote['timestamp'] = time();
-    $vote['vote_source'] = ip_address();
-    $vobe['prepped'] = TRUE;
-
-    $varray += $vote;
-  }
-  return (object)$varray;
-}
-
-/**
  * Generate a proper identifier for the current user: if they have
  * an account, return their UID. Otherwise, return their IP address.
  */
@@ -195,7 +167,7 @@ function votingapi_current_user_identifier() {
  * Save a single vote to the database.
  *
  * @param $vobj
- *   A single vote object with the following properties:
+ *   An array of vote objects with the following properties:
  *   $vote->content_type  (Optional, defaults to 'node')
  *   $vote->content_id    (Required)
  *   $vote->value_type    (Optional, defaults to 'percent')
@@ -205,57 +177,78 @@ function votingapi_current_user_identifier() {
  *   $vote->vote_source   (Optional, defaults to current IP)
  *   $vote->timestamp     (Optional, defaults to time())
  * @return
- *   The same vote object with its vote_id property populated.
+ *   The same vote objects, with vote_ids property populated.
  */
-function votingapi_add_vote($vobj) {
-  $vobj = _votingapi_prep_vote($vobj);
-  db_query("INSERT INTO {votingapi_vote} (content_type, content_id, value, value_type, tag, uid, timestamp, vote_source) VALUES (%d, '%s', %d, %f, '%s', '%s', %d, %d, '%s')",
-    $vobj->content_type, $vobj->content_id, $vobj->value, $vobj->value_type, $vobj->tag, $vobj->uid, $vobj->timestamp, $vobj->vote_source);
-  $vobj->vote_id = db_last_insert_id('votingapi_vote', 'vote_id');
-  return $vobj;
+function votingapi_add_votes($votes = array()) {
+  if (is_object($votes)) {
+    $votes = array($votes);
+  }
+
+  foreach ($votes as $vobj) {
+    $vobj = _votingapi_prep_vote($vobj);
+    db_query("INSERT INTO {votingapi_vote} (content_type, content_id, value, value_type, tag, uid, timestamp, vote_source) VALUES (%d, '%s', %d, %f, '%s', '%s', %d, %d, '%s')",
+      $vobj->content_type, $vobj->content_id, $vobj->value, $vobj->value_type, $vobj->tag, $vobj->uid, $vobj->timestamp, $vobj->vote_source);
+    $vobj->vote_id = db_last_insert_id('votingapi_vote', 'vote_id');
+  }
+  votingapi_invoke('insert', $votes);
+  return $votes;
+}
+
+/**
+ * Save a single vote result to the database.
+ *
+ * @param robj
+ *   An array of vote result objects with the following properties:
+ *   $robj->content_type
+ *   $robj->content_id
+ *   $robj->value_type
+ *   $robj->value
+ *   $robj->tag
+ *   $robj->function
+ *   $robj->timestamp   (Optional, defaults to time())
+ */
+function votingapi_add_results($vote_results = array()) {
+  if (is_object($vote_results)) {
+    $vote_results = array($vote_results);
+  }
+
+  foreach ($vote_results as $robj) {
+    $robj->timestamp = time();
+    db_query("INSERT INTO {votingapi_cache} (content_type, content_id, value, value_type, tag, function, timestamp) VALUES (%d, '%s', %d, %f, '%s', '%s', '%s', %d)",
+      $robj->content_type, $robj->content_id, $robj->value, $robj->value_type, $robj->tag, $robj->function, $robj->timestamp);
+  }
 }
 
 /**
  * Delete votes from the database.
  *
- * @param $criteria
- *   A keyed array used to build the delete query. Keys can contain
- *   a single value or an array of values to be matched.
- *   $criteria['vote_id']       (If this is set, all other keyes are skipped)
- *   $criteria['content_type']
- *   $criteria['content_type']
- *   $criteria['value_type']
- *   $criteria['tag']
- *   $criteria['uid']
- *   $criteria['vote_source']
- *   $criteria['timestamp']   (If this is set, records with timestamps
- *      GREATER THAN the set value will be deleted)
+ * @param $votes
+ *   An array of vote objects to delete. Minimally, each object must
+ *   have the vote_id property set.
  */
-function votingapi_delete_votes($criteria = array()) {
-  if (!empty($criteria['vote_source'])) {
-    $criteria['timestamp'] = time() - varible_get('votingapi_anonymous_window', 3600);
+function votingapi_delete_votes($votes = array()) {
+  votingapi_invoke('delete', $votes);
+  $vids = array();
+  foreach ($votes as $vote) {
+    $vids[] = $vote->vote_id;
   }
-  _votingapi_query('vote', 'DELETE', (array)$criteria);
+  db_query("DELETE FROM {votingapi_vote} v WHERE v.vote_id IN (". implode(',', array_fill(0, count($vids), '%d')) .")", $vids);
 }
 
 /**
- * Simple wrapper function for votingapi_select_votes. Returns the
- * value of the first vote matching the criteria passed in.
+ * Delete cached vote results from the database.
+ *
+ * @param $vote_results
+ *   An array of vote result objects to delete. Minimally, each object
+ *   must have the vote_cache_id property set.
  */
-function votingapi_select_single_vote_value($criteria = array()) {
-  if ($votes = votingapi_select_votes($criteria) && !empty($votes)) {
-    return $votes[0]->value;
+function votingapi_delete_results($vote_results = array()) {
+  votingapi_invoke('delete', $vote_results);
+  $vids = array();
+  foreach ($vote_results as $vote) {
+    $vids[] = $vote->vote_cache_id;
   }
-}
-
-/**
- * Simple wrapper function for votingapi_select_results. Returns the
- * value of the first result matching the criteria passed in.
- */
-function votingapi_select_single_result_value($criteria = array()) {
-  if ($results = votingapi_select_results($criteria) && !empty($votes)) {
-    return $results[0]->value;
-  }
+  db_query("DELETE FROM {votingapi_cache} v WHERE v.vote_cahe_id IN (". implode(',', array_fill(0, count($vids), '%d')) .")", $vids);
 }
 
 /**
@@ -281,31 +274,13 @@ function votingapi_select_votes($criteria = array()) {
     $criteria['timestamp'] = time() - varible_get('votingapi_anonymous_window', 3600);
   }
   $votes = array();
-  $result = _votingapi_query('vote', 'SELECT *', (array)$criteria);
+  $result = _votingapi_query('vote', (array)$criteria);
   while ($vote = db_fetch_object($result)) {
     $votes[] = $vote;
   }
   return $votes;
 }
 
-/**
- * Delete cached vote results from the database.
- *
- * @param $criteria
- *   A keyed array used to build the delete query. Keys can contain
- *   a single value or an array of values to be matched.
- *   $criteria['vote_cache_id']     (If this is set, all other keyes are skipped)
- *   $criteria['content_type']
- *   $criteria['content_type']
- *   $criteria['value_type']
- *   $criteria['tag']
- *   $criteria['function']
- *   $criteria['timestamp']   (If this is set, records with timestamps
- *      GREATER THAN the set value will be deleted.)
- */
-function votingapi_delete_results($criteria = array()) {
-  _votingapi_query('cache', 'DELETE', (array)$criteria);
-}
 
 /**
  * Select cached vote results from the database.
@@ -327,7 +302,7 @@ function votingapi_delete_results($criteria = array()) {
  */
 function votingapi_select_results($criteria = array()) {
   $cached = array();
-  $result = _votingapi_query('cache', 'SELECT *', (array)$criteria);
+  $result = _votingapi_query('cache', (array)$criteria);
   while ($cache = db_fetch_object($result)) {
     $cached[] = $cache;
   }
@@ -411,23 +386,25 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
   }
 }
 
+
 /**
- * Save a single vote result to the database.
- *
- * @param robj
- *   A single vote result object with the following properties:
- *   $robj->content_type
- *   $robj->content_id
- *   $robj->value_type
- *   $robj->value
- *   $robj->tag
- *   $robj->function
- *   $robj->timestamp   (Optional, defaults to time())
+ * Simple wrapper function for votingapi_select_votes. Returns the
+ * value of the first vote matching the criteria passed in.
  */
-function votingapi_add_result($robj) {
-  $robj->timestamp = time();
-  db_query("INSERT INTO {votingapi_cache} (content_type, content_id, value, value_type, tag, function, timestamp) VALUES (%d, '%s', %d, %f, '%s', '%s', '%s', %d)",
-    $robj->content_type, $robj->content_id, $robj->value, $robj->value_type, $robj->tag, $robj->function, $robj->timestamp);
+function votingapi_select_single_vote_value($criteria = array()) {
+  if ($votes = votingapi_select_votes($criteria) && !empty($votes)) {
+    return $votes[0]->value;
+  }
+}
+
+/**
+ * Simple wrapper function for votingapi_select_results. Returns the
+ * value of the first result matching the criteria passed in.
+ */
+function votingapi_select_single_result_value($criteria = array()) {
+  if ($results = votingapi_select_results($criteria) && !empty($votes)) {
+    return $results[0]->value;
+  }
 }
 
 /**
@@ -449,8 +426,36 @@ function votingapi_invoke($hook, &$a1, $a2 = NULL, $a3 = NULL, $a4 = NULL, $a5 =
   return $return;
 }
 
-function _votingapi_query($table = 'vote', $action = 'SELECT *', $criteria = array()) {
-  $query = $action .' FROM {votingapi_'. $table .'} v WHERE 1 = 1';
+/**
+ * Populate the value of any unset vote properties.
+ *
+ * @param $vobj
+ *   A single vote object.
+ * @return
+ *   A vote object with all required properties filled in with
+ *   their default values.
+ */
+function _votingapi_prep_vote($vobj) {
+  global $user;
+  if (empty($vobj->prepped)) {
+    $varray = (array)$vobj;
+
+    $vote = array();
+    $vote['content_type'] = 'node';
+    $vote['value_type'] = 'percent';
+    $vote['tag'] = 'vote';
+    $vote['uid'] = $user->uid;
+    $vote['timestamp'] = time();
+    $vote['vote_source'] = ip_address();
+    $vobe['prepped'] = TRUE;
+
+    $varray += $vote;
+  }
+  return (object)$varray;
+}
+
+function _votingapi_query($table = 'vote', $criteria = array()) {
+  $query = "SELECT * FROM {votingapi_". $table ."} v WHERE 1 = 1";
   $args = array();
   if (!empty($criteria['vote_id'])) {
     _votingapi_query_builder('vote_id', $criteria['vote_id'], $query, $args);
