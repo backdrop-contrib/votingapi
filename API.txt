@@ -4,19 +4,16 @@ What's this, now?
 =================
 VotingAPI provides a flexible, easy-to-use framework for rating, voting, moderation, and consensus-gathering modules in Drupal. It allows module developers to focus on their ideas (say, providing a 'rate this thread' widget at the bottom of each forum post) without worrying about the grunt work of storing votes, preventing ballot-stuffing, calculating the results, and so on.
 
-VotingAPI handles four key things for module developers:
+VotingAPI handles three key things for module developers:
 
 1) CRUD
-Create/Retrieve/Update/Delete operations for voting data. The simplest modules only need to call two functions -- votingapi_set_vote() and votingapi_get_voting_results() -- to use the API. Others can use finer-grain functions for complete control.
+Create/Retrieve/Update/Delete operations for voting data. The simplest modules only need to call two functions -- votingapi_set_vote() and votingapi_select_results() -- to use the API. Others can use finer-grain functions for complete control.
 
 2) Calculation
 Every time a user casts a vote, VotingAPI calculates the results and caches them for you. You can use the default calculations (like average, total, etc) or implement your own custom tallying functions.
 
-3) Workflow
-Every time results are calculated for a piece of content, VotingAPI can launch actions (like promoting a node to the front page, hiding a comment that's been flagged as spam, or emailing an administrator) if specified criteria are met.
-
-4) Display
-VotingAPI integrates with Views.module, allowing you to slice and dice your site's content based on user consensus. It also provides convenience functions to format vote data for display to users.
+3) Display
+VotingAPI integrates with Views.module, allowing you to slice and dice your site's content based on user consensus. While some custom modules may need to implement thier own Views integration to provide customized integration, the vast majority can use the built-in system without any additional work.
 
 
 How Data Is Stored
@@ -32,7 +29,7 @@ value_type   -- This determines how vote results are totaled. VotingAPI supports
 tag          -- Modules can use different tags to store votes on specific aspects of a piece of content, like 'accuracy' and 'timeliness' of a news story. If you don't need to vote on multiple criteria, you should use the default value of 'vote'. If you use multiple tags, it is STRONGLY recommended that you provide an average or 'overall' value filed under the default 'vote' tag. This gives other modules that display voting data a single value to key on for sorting, etc.
 uid          -- The user ID of the person who voted.
 timestamp    -- The time the vote was cast.
-hostname     -- The IP address of the host the vote was cast from.
+vote_source  -- A unique identifier used to distinguish votes cast by anonymous users. By default, this is the IP address of the remote machine.
 
 Whenever a vote is cast, VotingAPI gathers up all the votes for the content_type/content_id combination, and creates a collection of cached 'result' records. Each voting result recorded stores the following information:
 
@@ -59,9 +56,7 @@ Using the API (The Easy Way)
 ============================
   High-level functions
     votingapi_set_vote()
-    votingapi_unset_vote()
-    votingapi_get_voting_results()
-
+    votingapi_select_results()
 
 Using the API (With Full Control)
 =================================
@@ -77,12 +72,19 @@ Using the API (With Full Control)
 
 VotingAPI hooks (Bending the API to your will)
 ================================================
-  hook_votingapi_load($vote)
   hook_votingapi_insert($vote)
   hook_votingapi_update($vote, $new_value)
   hook_votingapi_delete($vote)
 
-  hook_votingapi_format($vote, $field)
-
   hook_votingapi_calculate(&$results, $votes, $content_type, $content_id)
   hook_votingapi_results($results, $votes, $content_type, $content_id)
+
+Upgrading from VotingAPI 1.x
+============================
+Version 2.0 of VotingAPI offers several notable changes. Modules MUST be updated to work with VotingAPI 2.0, but changes for most modules should be minimal. Among other things, version 2.0 offers automatic support for anonymous votes -- something that required custom vote handling in version 1.x.
+
+1) Functions accept objects and arrays of objects instead of long parameter lists
+
+2) Retrieval functions consolidated
+
+3) Lesser-used hooks eliminated

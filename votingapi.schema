@@ -40,5 +40,3 @@ function votigapi_schema() {
   );
   return $schema;
 }
-
-
