@@ -1,7 +1,7 @@
 <?php
 // $Id$
 
-function votigapi_schema() {
+function votingapi_schema() {
   $schema['votingapi_vote'] = array(
     'fields' => array(
       'vote_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),

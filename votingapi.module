@@ -108,16 +108,28 @@ function votingapi_settings_form($form_state) {
  *   $vote->uid           (Optional, defaults to current user)
  *   $vote->vote_source   (Optional, defaults to current IP)
  *   $vote->timestamp     (Optional, defaults to time())
- * @param $silent
- *   A bool indicating that the votes should NOT trigger a re-totaling
- *   of the vote results table.
+ * @param $criteria
+ *   A keyed array used to determine what votes will be deleted
+ *   when the current vote is cast. If no value is specified, all
+ *   votes for the current content by the current user will be reset.
+ *   If an empty array is passed in, no votes will be reset and all
+ *   incoming votes will be saved IN ADDITION to existing ones.
+ *   $criteria['vote_id']     (If this is set, all other keyes are skipped)
+ *   $criteria['content_type']
+ *   $criteria['content_type']
+ *   $criteria['value_type']
+ *   $criteria['tag']
+ *   $criteria['uid']
+ *   $criteria['vote_source']
+ *   $criteria['timestamp']   (If this is set, records with timestamps
+ *      GREATER THAN the set value will be selected.)
  * @return
  *   An array of vote result records affected by the vote. The values
  *   are contained in a nested array keyed thusly:
  *   $value = $results[$content_type][$content_id][$tag][$value_type][$function]
  *   If $silent is TRUE, this array will be empty.
  */
-function votingapi_set_vote($votes = array(), $silent = FALSE) {
+function votingapi_set_vote($votes = array(), $criteria = NULL) {
   if (is_object($votes)) {
     $votes = array($votes);
   }
@@ -126,17 +138,22 @@ function votingapi_set_vote($votes = array(), $silent = FALSE) {
   foreach($votes as $key => $vote) {
     // First nuke existing votes by this user.
     $vote = _votingapi_prep_vote($vote);
-    $criteria = votingapi_current_user_identifier();
-    $criteria += (array)$vote;
-    votingapi_delete_votes($criteria);
+    if (!isset($criteria)) {
+      $criteria = votingapi_current_user_identifier();
+      $criteria += (array)$vote;
+    }
+    if (!empty($criteria)) {
+      votingapi_delete_votes(votingapi_select_votes($criteria));
+    }
 
-    $votes[$key] = votingapi_add_vote($vote);
+
+    $votes[$key] = votingapi_add_votes($vote);
     $touched[$vote->content_type][$vote->content_id] = TRUE;
   }
 
   if (variable_get('votingapi_calculation_schedule', 'immediate') != 'cron') {
     foreach($touched as $type => $ids) {
-      foreach ($ids as $id) {
+      foreach ($ids as $id => $bool) {
         $touched[$type][$id] = votingapi_recalculate_results($type, $id);
       }
     }
@@ -183,7 +200,7 @@ function votingapi_add_votes($votes = array()) {
 
   foreach ($votes as $vobj) {
     $vobj = _votingapi_prep_vote($vobj);
-    db_query("INSERT INTO {votingapi_vote} (content_type, content_id, value, value_type, tag, uid, timestamp, vote_source) VALUES (%d, '%s', %d, %f, '%s', '%s', %d, %d, '%s')",
+    db_query("INSERT INTO {votingapi_vote} (content_type, content_id, value, value_type, tag, uid, timestamp, vote_source) VALUES ('%s', %d, %f, '%s', '%s', %d, %d, '%s')",
       $vobj->content_type, $vobj->content_id, $vobj->value, $vobj->value_type, $vobj->tag, $vobj->uid, $vobj->timestamp, $vobj->vote_source);
     $vobj->vote_id = db_last_insert_id('votingapi_vote', 'vote_id');
   }
@@ -211,7 +228,7 @@ function votingapi_add_results($vote_results = array()) {
 
   foreach ($vote_results as $robj) {
     $robj->timestamp = time();
-    db_query("INSERT INTO {votingapi_cache} (content_type, content_id, value, value_type, tag, function, timestamp) VALUES (%d, '%s', %d, %f, '%s', '%s', '%s', %d)",
+    db_query("INSERT INTO {votingapi_cache} (content_type, content_id, value, value_type, tag, function, timestamp) VALUES ('%s', %d, %f, '%s', '%s', '%s', %d)",
       $robj->content_type, $robj->content_id, $robj->value, $robj->value_type, $robj->tag, $robj->function, $robj->timestamp);
   }
 }
@@ -224,12 +241,14 @@ function votingapi_add_results($vote_results = array()) {
  *   have the vote_id property set.
  */
 function votingapi_delete_votes($votes = array()) {
-  module_invoke_all('votingapi_delete', $votes);
-  $vids = array();
-  foreach ($votes as $vote) {
-    $vids[] = $vote->vote_id;
+  if (!empty($votes)) {
+    module_invoke_all('votingapi_delete', $votes);
+    $vids = array();
+    foreach ($votes as $vote) {
+      $vids[] = $vote->vote_id;
+    }
+    db_query("DELETE FROM {votingapi_vote} WHERE vote_id IN (". implode(',', array_fill(0, count($vids), '%d')) .")", $vids);
   }
-  db_query("DELETE FROM {votingapi_vote} v WHERE v.vote_id IN (". implode(',', array_fill(0, count($vids), '%d')) .")", $vids);
 }
 
 /**
@@ -240,11 +259,13 @@ function votingapi_delete_votes($votes = array()) {
  *   must have the vote_cache_id property set.
  */
 function votingapi_delete_results($vote_results = array()) {
-  $vids = array();
-  foreach ($vote_results as $vote) {
-    $vids[] = $vote->vote_cache_id;
+  if (!empty($vote_results)) {
+    $vids = array();
+    foreach ($vote_results as $vote) {
+      $vids[] = $vote->vote_cache_id;
+    }
+    db_query("DELETE FROM {votingapi_cache} WHERE vote_cache_id IN (". implode(',', array_fill(0, count($vids), '%d')) .")", $vids);
   }
-  db_query("DELETE FROM {votingapi_cache} v WHERE v.vote_cahe_id IN (". implode(',', array_fill(0, count($vids), '%d')) .")", $vids);
 }
 
 /**
@@ -254,7 +275,7 @@ function votingapi_delete_results($vote_results = array()) {
  *   A keyed array used to build the select query. Keys can contain
  *   a single value or an array of values to be matched.
  *   $criteria['vote_id']       (If this is set, all other keyes are skipped)
- *   $criteria['content_type']
+ *   $criteria['content_id']
  *   $criteria['content_type']
  *   $criteria['value_type']
  *   $criteria['tag']
@@ -267,10 +288,10 @@ function votingapi_delete_results($vote_results = array()) {
  */
 function votingapi_select_votes($criteria = array()) {
   if (!empty($criteria['vote_source'])) {
-    $criteria['timestamp'] = time() - varible_get('votingapi_anonymous_window', 3600);
+    $criteria['timestamp'] = time() - variable_get('votingapi_anonymous_window', 3600);
   }
   $votes = array();
-  $result = _votingapi_query('vote', (array)$criteria);
+  $result = _votingapi_query('vote', $criteria);
   while ($vote = db_fetch_object($result)) {
     $votes[] = $vote;
   }
@@ -298,7 +319,7 @@ function votingapi_select_votes($criteria = array()) {
  */
 function votingapi_select_results($criteria = array()) {
   $cached = array();
-  $result = _votingapi_query('cache', (array)$criteria);
+  $result = _votingapi_query('cache', $criteria);
   while ($cache = db_fetch_object($result)) {
     $cached[] = $cache;
   }
@@ -327,8 +348,10 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
   if (variable_get('votingapi_calculation_schedule', 'immediate') != 'cron' || $force_calculation == TRUE) {
     // blow away the existing cache records.
     $criteria = array('content_type' => $content_type, 'content_id' => $content_id);
-    votingapi_delete_results($criteria);
-    $cache = votingapi_select_votes($criteria);
+    $old_cache = votingapi_select_results($criteria);
+    votingapi_delete_results($old_cache);
+    $votes = votingapi_select_votes($criteria);
+    $cache = array();
 
     // Loop through, calculate per-type and per-tag totals, etc.
     foreach ($votes as $vote) {
@@ -370,10 +393,18 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
     foreach ($cache as $tag => $types) {
       foreach ($types as $type => $functions) {
         foreach ($functions as $function => $value) {
-         $cached[] = _votingapi_insert_cache_result($content_type, $content_id, $value, $type, $tag, $function);
+          $cached[] = (object) array(
+            'content_type' => $content_type,
+            'content_id' => $content_id,
+            'value_type' => $type,
+            'value' => $value,
+            'tag' => $tag,
+            'function' => $function,
+          );
         }
       }
     }
+    votingapi_add_results($cached);
 
     // Give other modules a chance to act on the results of the vote totaling.
     module_invoke_all('votingapi_results', $cached, $votes, $content_type, $content_id);
@@ -398,7 +429,7 @@ function votingapi_select_single_vote_value($criteria = array()) {
  * value of the first result matching the criteria passed in.
  */
 function votingapi_select_single_result_value($criteria = array()) {
-  return db_value(_votingapi_query('cache', $criteria, 1));
+  return db_result(_votingapi_query('cache', $criteria, 1));
 }
 
 /**
@@ -414,7 +445,6 @@ function _votingapi_prep_vote($vobj) {
   global $user;
   if (empty($vobj->prepped)) {
     $varray = (array)$vobj;
-
     $vote = array();
     $vote['content_type'] = 'node';
     $vote['value_type'] = 'percent';
@@ -422,14 +452,29 @@ function _votingapi_prep_vote($vobj) {
     $vote['uid'] = $user->uid;
     $vote['timestamp'] = time();
     $vote['vote_source'] = ip_address();
-    $vobe['prepped'] = TRUE;
+    $vote['prepped'] = TRUE;
 
     $varray += $vote;
+    return (object)$varray;
   }
-  return (object)$varray;
+  return $vobj;
 }
 
 function _votingapi_query($table = 'vote', $criteria = array(), $limit = 0) {
+  $criteria += array(
+    'vote_id' => NULL,
+    'vote_cache_id' => NULL,
+    'content_id' => NULL,
+    'content_type' => NULL,
+    'value_type' => NULL,
+    'value' => NULL,
+    'tag' => NULL,
+    'uid' => NULL,
+    'timestamp' => NULL,
+    'vote_source' => NULL,
+    'function' => NULL,
+  );
+
   $query = "SELECT * FROM {votingapi_". $table ."} v WHERE 1 = 1";
   $args = array();
   if (!empty($criteria['vote_id'])) {
@@ -441,7 +486,7 @@ function _votingapi_query($table = 'vote', $criteria = array(), $limit = 0) {
     _votingapi_query_builder('content_id', $criteria['content_id'], $query, $args);
     _votingapi_query_builder('value_type', $criteria['value_type'], $query, $args, TRUE);
     _votingapi_query_builder('tag', $criteria['tag'], $query, $args, TRUE);
-    _votingapi_query_builder('function', $criteria['timestamp'], $query, $args);
+    _votingapi_query_builder('function', $criteria['function'], $query, $args);
     _votingapi_query_builder('uid', $criteria['uid'], $query, $args);
     _votingapi_query_builder('vote_source', $criteria['vote_source'], $query, $args, TRUE);
     _votingapi_query_builder('timestamp', $criteria['timestamp'], $query, $args);
@@ -451,32 +496,31 @@ function _votingapi_query($table = 'vote', $criteria = array(), $limit = 0) {
 
 function _votingapi_query_builder($name, $value, &$query, &$args, $col_is_string = FALSE) {
   if (!isset($value)) {
-    return;
+    // Do nothing
   }
-
-  if ($name == 'timestamp') {
+  elseif ($name === 'timestamp') {
     $query .= " AND v.timestamp >= %d";
-    $args += $value;
-    return;
+    $args[] = $value;
   }
-
-  if (is_array($value)) {
-    if ($col_is_string) {
-      $query .= " AND v.". $name ." IN ('". array_fill(1, count($value), "'%s'") ."')";
-      $args += $value;
-    }
-    else {
-      $query .= " AND v.". $name ." IN (". array_fill(1, count($value), "%d") .")";
-      $args += $value;
-    }
-  } else {
-    if ($col_is_string) {
-      $query .= " AND v.". $name ." = '%s')";
-      $args[] = $value;
-    }
-    else {
-      $query .= " AND v.". $name ." = %d)";
-      $args[] = $value;
+  else {
+    if (is_array($value)) {
+      if ($col_is_string) {
+        $query .= " AND v.". $name ." IN ('". array_fill(1, count($value), "'%s'") ."')";
+        $args += $value;
+      }
+      else {
+        $query .= " AND v.". $name ." IN (". array_fill(1, count($value), "%d") .")";
+        $args += $value;
+      }
+    } else {
+      if ($col_is_string) {
+        $query .= " AND v.". $name ." = '%s'";
+        $args[] = $value;
+      }
+      else {
+        $query .= " AND v.". $name ." = %d";
+        $args[] = $value;
+      }
     }
   }
 }
