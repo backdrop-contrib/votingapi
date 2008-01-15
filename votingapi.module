@@ -210,7 +210,7 @@ function votingapi_current_user_identifier() {
  *   The same votes, with vote_id keys populated.
  */
 function votingapi_add_votes(&$votes = array()) {
-  if (empty($votes['content_type'])) {
+  if (!empty($votes['content_type'])) {
     $votes = array($votes);
   }
   foreach ($votes as $key => $vote) {
@@ -236,7 +236,7 @@ function votingapi_add_votes(&$votes = array()) {
  *   $vote_result['timestamp']   (Optional, defaults to time())
  */
 function votingapi_add_results($vote_results = array()) {
-  if (empty($vote_results['content_type'])) {
+  if (!empty($vote_results['content_type'])) {
     $vote_results = array($vote_results);
   }
 
