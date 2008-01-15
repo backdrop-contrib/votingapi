@@ -20,6 +20,8 @@ function votingapi_schema() {
       'content' => array('content_type', 'content_id'),
       'content_uid' => array('content_type', 'content_id', 'uid'),
       'content_source' => array('content_type', 'content_id', 'vote_source'),
+      'content_vtype' => array('content_type', 'content_id', 'value_type'),
+      'content_value_tag' => array('content_type', 'content_id', 'value_type', 'tag'),
     ),
   );
   $schema['votingapi_cache'] = array(
@@ -37,6 +39,9 @@ function votingapi_schema() {
     'indexes' => array(
       'content' => array('content_type', 'content_id'),
       'content_function' => array('content_type', 'content_id', 'function'),
+      'content_tag_func' => array('content_type', 'content_id', 'tag', 'function'),
+      'content_vtype_tag' => array('content_type', 'content_id', 'value_type', 'tag'),
+      'content_vtype_tag_func' => array('content_type', 'content_id', 'value_type', 'tag', 'function'),
     ),
   );
   return $schema;
@@ -252,32 +257,33 @@ function _votingapi_update_6001() {
   // Rename the 'hostname' field to 'vote_source' for more flexibility
   db_change_field($ret, 'votingapi_vote', 'hostname', 'vote_source', array('type' => 'varchar', 'length' => 255));
 
-  // Update fields and indexes
-  db_update_field($ret, 'votingapi_vote', 'vote_id');
-  db_update_field($ret, 'votingapi_vote', 'content_type');
-  db_update_field($ret, 'votingapi_vote', 'content_id');
-  db_update_field($ret, 'votingapi_vote', 'value');
-  db_update_field($ret, 'votingapi_vote', 'value_type');
-  db_update_field($ret, 'votingapi_vote', 'tag');
-  db_update_field($ret, 'votingapi_vote', 'uid');
-  db_update_field($ret, 'votingapi_vote', 'timestamp');
-  db_update_field($ret, 'votingapi_vote', 'vote_source');
+  $indexes = array(
+    'content' => array('content_type', 'content_id'),
+    'content_uid' => array('content_type', 'content_id', 'uid'),
+    'content_source' => array('content_type', 'content_id', 'vote_source'),
+    'content_vtype' => array('content_type', 'content_id', 'value_type'),
+    'content_value_tag' => array('content_type', 'content_id', 'value_type', 'tag'),
+  ),
+  foreach($indexes as $name => $fields) {
+    db_add_index($ret, 'votingapi_vote', $name, $fields);
+  }
 
-  // Update fields and indexes
-  db_update_field($ret, 'votingapi_cache', 'vote_cache_id');
-  db_update_field($ret, 'votingapi_cache', 'content_type');
-  db_update_field($ret, 'votingapi_cache', 'content_id');
-  db_update_field($ret, 'votingapi_cache', 'value');
-  db_update_field($ret, 'votingapi_cache', 'value_type');
-  db_update_field($ret, 'votingapi_cache', 'tag');
-  db_update_field($ret, 'votingapi_cache', 'function');
-  db_update_field($ret, 'votingapi_cache', 'timestamp');
+  $indexes = array(
+    'content' => array('content_type', 'content_id'),
+    'content_function' => array('content_type', 'content_id', 'function'),
+    'content_tag_func' => array('content_type', 'content_id', 'tag', 'function'),
+    'content_vtype_tag' => array('content_type', 'content_id', 'value_type', 'tag'),
+    'content_vtype_tag_func' => array('content_type', 'content_id', 'value_type', 'tag', 'function'),
+  ),
+  foreach($indexes as $name => $fields) {
+    db_add_index($ret, 'votingapi_cache', $name, $fields);
+  }
 
   // Yes, we loves us the SchemaAPI.
   return $ret;
 }
 
 function votingapi_uninstall() {
-  db_query("DROP TABLE {votingapi_vote}");
-  db_query("DROP TABLE {votingapi_cache}");
+  db_drop_table('votingapi_vote');
+  db_drop_table('votingapi_cache');
 }
