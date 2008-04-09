@@ -51,6 +51,10 @@ function votingapi_install() {
   drupal_install_schema('votingapi');
 }
 
+function votingapi_uninstall() {
+  drupal_uninstall_schema('votingapi');
+}
+
 /**
  * UTF8 update
  */
@@ -251,14 +255,20 @@ function votingapi_update_9() {
   return $ret;
 }
 
-function _votingapi_update_6001() {
+function votingapi_update_6100() {
   $ret = array();
 
-  // Rename the 'hostname' field to 'vote_source' for more flexibility
+  // Convert vote_id and vote_cache_id columns to auto increment.
+  db_drop_primary_key($ret, 'votingapi_cache');
+  db_change_field($ret, 'votingapi_cache', 'vote_cache_id', 'vote_cache_id', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('vote_cache_id')));
+
+  db_drop_primary_key($ret, 'votingapi_vote');
+  db_change_field($ret, 'votingapi_vote', 'vote_id', 'vote_id', array('type' => 'serial', 'not null' => TRUE), array('primary key' => array('vote_id')));
+
+  // Rename the 'hostname' field to 'vote_source' for more flexibility.
   db_change_field($ret, 'votingapi_vote', 'hostname', 'vote_source', array('type' => 'varchar', 'length' => 255));
 
   $indexes = array(
-    'content' => array('content_type', 'content_id'),
     'content_uid' => array('content_type', 'content_id', 'uid'),
     'content_source' => array('content_type', 'content_id', 'vote_source'),
     'content_vtype' => array('content_type', 'content_id', 'value_type'),
@@ -269,7 +279,6 @@ function _votingapi_update_6001() {
   }
 
   $indexes = array(
-    'content' => array('content_type', 'content_id'),
     'content_function' => array('content_type', 'content_id', 'function'),
     'content_tag_func' => array('content_type', 'content_id', 'tag', 'function'),
     'content_vtype_tag' => array('content_type', 'content_id', 'value_type', 'tag'),
@@ -281,10 +290,4 @@ function _votingapi_update_6001() {
 
   // Yes, we loves us the SchemaAPI.
   return $ret;
-}
-
-function votingapi_uninstall() {
-  $ret = array();
-  db_drop_table($ret, 'votingapi_vote');
-  db_drop_table($ret, 'votingapi_cache');
 }

@@ -34,3 +34,7 @@ Foundation laid for a move to discrete hooks rather than a single _votingapi fun
 07/05/07
 --------
 First run at a Drupal 6 compatible version (after an ill-fated accidental checkin on the D5 branch). Once this works, work will start on v2.0. The plan is to add anonymous voting support and cleaner function signatures by passing in full vote objects rather than long param lists. It's uncertain whether 1.x will be released for Drupal 6 directly, or whether I'll just get the 2.0 version out for it, since modules will already need to be updated.
+
+04/09/08
+--------
+Several important bug fixes for the D6 version of VotingAPI. #223517, #232233, #232236, and #235174 fixed thanks to patches posted by quicksketch and sammys. Also checked in an initial stub file for views2 integration, removing the old hook_init() code since Views2 handles pulling the .inc files in itself.

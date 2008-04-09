@@ -29,15 +29,6 @@ function votingapi_menu() {
 }
 
 /**
- * Implementation of hook_init. Loads the Views integration code.
- */
-function votingapi_init() {
-  if (module_exists('views')) {
-    require_once(drupal_get_path('module', 'votingapi') .'/votingapi_views.inc');
-  }
-}
-
-/**
  * Implementation of hook_perm. Exposes a permission to edit the module's
  * settings.
  */
@@ -129,7 +120,7 @@ function votingapi_settings_form($form_state) {
  *   contained in a nested array keyed thusly:
  *   $value = $results[$content_type][$content_id][$tag][$value_type][$function]
  */
-function votingapi_set_votes($votes = array(), $criteria = NULL) {
+function votingapi_set_votes(&$votes, $criteria = NULL) {
   $touched = array();
   if (!empty($votes['content_type'])) {
     $votes = array($votes);
@@ -183,11 +174,8 @@ function votingapi_set_votes($votes = array(), $criteria = NULL) {
  */
 function votingapi_current_user_identifier() {
   global $user;
-  $criteria = array();
-  if ($user->uid) {
-    $criteria['uid'] = $user->uid;
-  }
-  else {
+  $criteria = array('uid' => $user->uid);
+  if (!$user->uid) {
     $criteria['vote_source'] = ip_address();
   }
   return $criteria;
@@ -209,7 +197,7 @@ function votingapi_current_user_identifier() {
  * @return
  *   The same votes, with vote_id keys populated.
  */
-function votingapi_add_votes(&$votes = array()) {
+function votingapi_add_votes(&$votes) {
   if (!empty($votes['content_type'])) {
     $votes = array($votes);
   }
