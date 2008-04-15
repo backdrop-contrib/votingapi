@@ -425,7 +425,7 @@ function _votingapi_views_vote_value_types() {
     );
     $results = db_query("SELECT DISTINCT value_type FROM {votingapi_vote}");
     while ($tmp = db_fetch_object($results)) {
-      $types[$tmp->value_type] = drupal_strtoupper($tmp->value_type);
+      $types[$tmp->value_type] = drupal_ucfirst($tmp->value_type);
     }
     $types[''] = t('No filtering');
   }
@@ -440,7 +440,7 @@ function _votingapi_views_vote_tags() {
     );
     $results = db_query("SELECT DISTINCT tag FROM {votingapi_vote}");
     while ($tmp = db_fetch_object($results)) {
-      $tags[$tmp->tag] = drupal_strtoupper($tmp->tag);
+      $tags[$tmp->tag] = drupal_ucfirst($tmp->tag);
     }
     $tags[''] = t('No filtering');
   }
@@ -458,7 +458,7 @@ function _votingapi_views_cache_value_types() {
     );
     $results = db_query("SELECT DISTINCT value_type FROM {votingapi_cache}");
     while ($tmp = db_fetch_object($results)) {
-      $types[$tmp->value_type] = drupal_strtoupper($tmp->value_type);
+      $types[$tmp->value_type] = drupal_ucfirst($tmp->value_type);
     }
     $types[''] = t('No filtering');
   }
@@ -473,7 +473,7 @@ function _votingapi_views_cache_tags() {
     );
     $results = db_query("SELECT DISTINCT tag FROM {votingapi_cache}");
     while ($tmp = db_fetch_object($results)) {
-      $tags[$tmp->tag] = drupal_strtoupper($tmp->tag);
+      $tags[$tmp->tag] = drupal_ucfirst($tmp->tag);
     }
     $tags[''] = t('No filtering');
   }
@@ -490,7 +490,7 @@ function _votingapi_views_cache_functions() {
     );
     $results = db_query("SELECT DISTINCT function FROM {votingapi_cache}");
     while ($tmp = db_fetch_object($results)) {
-      $functions[$tmp->function] = drupal_strtoupper($tmp->function);
+      $functions[$tmp->function] = drupal_ucfirst($tmp->function);
     }
     $functions[''] = t('No filtering');
   }
