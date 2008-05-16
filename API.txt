@@ -48,7 +48,7 @@ How it works (high-level overview)
     Load the vote results
     Display the vote results
     Cast a vote
-      (invisible steps: recalculation, and votingapi $ops)
+      (invisible steps: recalculation)
     And so on, ad infitum
 
 
@@ -76,8 +76,8 @@ VotingAPI hooks (Bending the API to your will)
   hook_votingapi_update($vote, $new_value)
   hook_votingapi_delete($vote)
 
-  hook_votingapi_calculate(&$results, $votes, $content_type, $content_id)
-  hook_votingapi_results($results, $votes, $content_type, $content_id)
+  hook_votingapi_results_alter(&$results, $content_type, $content_id)
+  hook_votingapi_results($results, $content_type, $content_id)
 
 Upgrading from VotingAPI 1.x
 ============================
@@ -88,3 +88,31 @@ Version 2.0 of VotingAPI offers several notable changes. Modules MUST be updated
 2) Retrieval functions consolidated
 
 3) Lesser-used hooks eliminated
+
+4) Custom result calculations must do their own SQL
+
+An example custom calculation
+=============================
+The following function adds a standard_deviation result to the calculated result data.
+Note that in previous versions of VotingAPI, this function received in-memory copies of
+each and every cast vote to avoid the need for custom SQL. This turned out to be very,
+very, very inefficient -- the slowdown of possibly running multiple aggregate queries is
+far outweighed by the memory savings of each module handling its own queries. After all,
+MySQL calculates standard deviation far faster than you can in PHP.
+
+function mymodule_votingapi_results_alter(&$results, $content_type, $content_id) {
+  // We're using a MySQLism (STDDEV isn't ANSI SQL), but it's OK because this is
+  // an example. And no one would ever base real code on sample code. Ever. Never.
+  $sql  = "SELECT v.tag, STDDEV(v.value) as standard_deviation ";
+  $sql .= "FROM {votingapi_vote} v ";
+  $sql .= "WHERE v.content_type = '%s' AND v.content_id = %d AND v.value_type = 'percent' ";
+  $sql .= "GROUP BY v.tag";
+
+  $results = db_query($sql, $content_type, $content_id);
+
+  // VotingAPI wants the data in the following format:
+  // $cache[$tag][$value_type][$math_function] = $value;
+  while ($result = db_fetch_array($results)) {
+    $cache[$result['tag']]['percent']['standard_deviation'] = $result['standard_deviation'];
+  }
+}

@@ -292,7 +292,7 @@ function votingapi_select_votes($criteria = array()) {
     $criteria['timestamp'] = time() - variable_get('votingapi_anonymous_window', 3600);
   }
   $votes = array();
-  $result = _votingapi_query('vote', $criteria);
+  $result = _votingapi_select('vote', $criteria);
   while ($vote = db_fetch_array($result)) {
     $votes[] = $vote;
   }
@@ -319,7 +319,7 @@ function votingapi_select_votes($criteria = array()) {
  */
 function votingapi_select_results($criteria = array()) {
   $cached = array();
-  $result = _votingapi_query('cache', $criteria);
+  $result = _votingapi_select('cache', $criteria);
   while ($cache = db_fetch_array($result)) {
     $cached[] = $cache;
   }
@@ -346,50 +346,17 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
   // bail out. The cron run will pick up the results.
 
   if (variable_get('votingapi_calculation_schedule', 'immediate') != 'cron' || $force_calculation == TRUE) {
-    // blow away the existing cache records.
     $criteria = array('content_type' => $content_type, 'content_id' => $content_id);
-    $old_cache = votingapi_select_results($criteria);
-    votingapi_delete_results($old_cache);
-    $votes = votingapi_select_votes($criteria);
-    $cache = array();
+    _votingapi_delete('cache', $criteria);
 
-    // Loop through, calculate per-type and per-tag totals, etc.
-    foreach ($votes as $vote) {
-      switch ($vote['value_type']) {
-        case 'percent':
-          $cache[$vote['tag']][$vote['value_type']]['count'] += 1;
-          $cache[$vote['tag']][$vote['value_type']]['sum'] += $vote['value'];
-          break;
-
-        case 'points':
-          $cache[$vote['tag']][$vote['value_type']]['count'] += 1;
-          $cache[$vote['tag']][$vote['value_type']]['sum'] += $vote['value'];
-          break;
-
-        case 'option':
-          $cache[$vote['tag']][$vote['value_type']][$vote['value']] += 1;
-          break;
-      }
-    }
-
-    // Do a quick loop through to calculate averages.
-    // This is also a good example of how external modules can do their own processing.
-    foreach ($cache as $tag => $types) {
-      foreach ($types as $type => $functions) {
-        if ($type == 'percent' || $type == 'points') {
-          $cache[$tag][$type]['average'] = $functions['sum'] / $functions['count'];
-        }
-        if ($type == 'percent') {
-          // we don't actually need the sum for this. discard it to avoid cluttering the db.
-          unset($cache[$tag][$type]['sum']);
-        }
-      }
-    }
+    // Bulk query to pull the majority of the results we care about.
+    $cache = _votingapi_get_standard_results($content_type, $content_id);
 
     // Give other modules a chance to alter the collection of votes.
-    drupal_alter('votingapi_results', $cache, $votes, $content_type, $content_id);
+    drupal_alter('votingapi_results', $cache, $content_type, $content_id);
 
     // Now, do the caching. Woo.
+    $cached = array();
     foreach ($cache as $tag => $types) {
       foreach ($types as $type => $functions) {
         foreach ($functions as $function => $value) {
@@ -407,12 +374,46 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
     votingapi_add_results($cached);
 
     // Give other modules a chance to act on the results of the vote totaling.
-    module_invoke_all('votingapi_results', $cached, $votes, $content_type, $content_id);
+    module_invoke_all('votingapi_results', $cached, $content_type, $content_id);
 
     return $cached;
   }
 }
 
+
+/**
+ * Internal function - builds the default set of VotingAPI results
+ * for the three supported voting styles.
+ */
+function _votingapi_get_standard_results($content_type, $content_id) {
+  $cache = array();
+
+  $sql  = "SELECT v.value_type, v.tag, ";
+  $sql .= "COUNT(v.value) as value_count, SUM(v.value) as value_sum  ";
+  $sql .= "FROM {votingapi_vote} v ";
+  $sql .= "WHERE v.content_type = '%s' AND v.content_id = %d AND v.value_type IN ('points', 'percent') ";
+  $sql .= "GROUP BY v.value_type, v.tag";
+  $results = db_query($sql, $content_type, $content_id);
+
+  while ($result = db_fetch_array($results)) {
+    $cache[$result['tag']][$result['value_type']]['count'] = $result['value_count'];
+    $cache[$result['tag']][$result['value_type']]['average'] = $result['value_sum'] / $result['value_count'];
+    if ($result['value_type'] == 'points') {
+      $cache[$result['tag']][$result['value_type']]['sum'] = $result['value_sum'];
+    }
+  }
+
+  $sql  = "SELECT v.tag, v.value, COUNT(1) AS score ";
+  $sql .= "FROM {votingapi_vote} v ";
+  $sql .= "WHERE v.content_type = '%s' AND v.content_id = %d AND v.value_type = 'option' ";
+  $sql .= "GROUP BY v.value, v.tag";
+  $results = db_query($sql, $content_type, $content_id);
+  while ($result = db_fetch_array($results)) {
+    $cache[$result['tag']][$result['value_type']]['option-'. $result['value']] = $result['score'];
+  }
+
+  return $cache;
+}
 
 /**
  * Simple wrapper function for votingapi_select_votes. Returns the
@@ -456,7 +457,35 @@ function _votingapi_prep_vote(&$vote) {
   }
 }
 
-function _votingapi_query($table = 'vote', $criteria = array(), $limit = 0) {
+
+/**
+ * Internal helper function constructs SELECT queries. Don't use unless you're me.
+ */
+function _votingapi_select($table = 'vote', $criteria = array(), $limit = 0) {
+  $query = "SELECT * FROM {votingapi_". $table ."} v WHERE 1 = 1";
+  $details = _votingapi_query('vote', $criteria);
+
+  $query .= $details['query'];
+  return $limit ? db_query_range($query, $details['args'], 0, $limit) : db_query($query, $details['args']);
+}
+
+/**
+ * Internal helper function constructs DELETE queries. Don't use unless you're me.
+ */
+function _votingapi_delete($table = 'vote', $criteria = array(), $limit = 0) {
+  $query = "DELETE FROM {votingapi_". $table ."} WHERE 1 = 1";
+
+  $query = "SELECT * FROM {votingapi_". $table ."} v WHERE 1 = 1";
+  $details = _votingapi_query('vote', $criteria);
+
+  $query .= $details['query'];
+  db_query($query, $details['args']);
+}
+
+/**
+ * Internal helper function constructs WHERE clauses. Don't use unless you're me.
+ */
+function _votingapi_query($table = 'vote', $criteria = array()) {
   $criteria += array(
     'vote_id' => NULL,
     'vote_cache_id' => NULL,
@@ -471,7 +500,7 @@ function _votingapi_query($table = 'vote', $criteria = array(), $limit = 0) {
     'function' => NULL,
   );
 
-  $query = "SELECT * FROM {votingapi_". $table ."} v WHERE 1 = 1";
+  $query = '';
   $args = array();
   if (!empty($criteria['vote_id'])) {
     _votingapi_query_builder('vote_id', $criteria['vote_id'], $query, $args);
@@ -487,9 +516,13 @@ function _votingapi_query($table = 'vote', $criteria = array(), $limit = 0) {
     _votingapi_query_builder('vote_source', $criteria['vote_source'], $query, $args, TRUE);
     _votingapi_query_builder('timestamp', $criteria['timestamp'], $query, $args);
   }
-  return $limit ? db_query_range($query, $args, 0, $limit) : db_query($query, $args);
+  return array('query' => $query, 'args' => $args);
 }
 
+/**
+ * Internal helper function constructs individual elements of WHERE clauses.
+ * Don't use unless you're me.
+ */
 function _votingapi_query_builder($name, $value, &$query, &$args, $col_is_string = FALSE) {
   if (!isset($value)) {
     // Do nothing
