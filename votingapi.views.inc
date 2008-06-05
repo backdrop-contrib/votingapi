@@ -53,7 +53,7 @@ function votingapi_views_data() {
     'help' => t('The value of an individual cast vote.'), // The help that appears on the UI,
      // Information for displaying a title as a field
     'field' => array(
-      'handler' => 'votingapi_views_handler_field_vote_value',
+      'handler' => 'votingapi_views_handler_field_value',
       'click sortable' => TRUE,
      ),
      'filter' => array(
@@ -61,7 +61,7 @@ function votingapi_views_data() {
        'label' => t('Value'),
        ),
     'sort' => array(
-      'handler' => 'views_handler_sort',
+      'handler' => 'votingapi_views_handler_sort_value',
     ),
   );
 
@@ -175,7 +175,7 @@ function votingapi_views_data() {
        'label' => t('Value'),
        ),
     'sort' => array(
-      'handler' => 'views_handler_sort',
+      'handler' => 'votingapi_views_handler_sort_cache_value',
     ),
   );
 
@@ -257,6 +257,10 @@ function votingapi_views_data() {
 
 
 class votingapi_views_handler_field_value extends views_handler_field_numeric {
+  function settings_keys() {
+    return array('value_type', 'tag');
+  }
+
   /**
    * Ensure the main table for this handler is in the query. We do somewhat
    * debauched things here to allow separate copies of the table to be added
@@ -285,9 +289,16 @@ class votingapi_views_handler_field_value extends views_handler_field_numeric {
     return $this->table_alias;
   }
 
-  function options(&$options) {
-    parent::options($options);
+
+  function option_definition() {
+    $options = parent::option_definition();
+
     $options['appearance'] = '';
+
+    $options['vote']['value_type'] = '';
+    $options['vote']['tag'] = '';
+
+    return $options;
   }
 
   function options_form(&$form, &$form_state) {
@@ -305,40 +316,6 @@ class votingapi_views_handler_field_value extends views_handler_field_numeric {
         '#weight' => -5,
       );
     }
-  }
-
-  function render($values) {
-    $value = $values->{$this->field_alias};
-    $function = $this->options['appearance'];
-    if (!empty($function) && function_exists($function)) {
-      return $function($value, $this, $values);
-    }
-    else {
-      return parent::render($values);
-    }
-  }
-
-  function settings_keys() {
-    return array();
-  }
-}
-
-/**
- * Field handler to add additional filters when a value is displayed.
- */
-class votingapi_views_handler_field_vote_value extends votingapi_views_handler_field_value {
-  function settings_keys() {
-    return array('value_type', 'tag');
-  }
-
-  function options(&$options) {
-    parent::options($options);
-    $options['vote']['value_type'] = '';
-    $options['vote']['tag'] = '';
-  }
-
-  function options_form(&$form, &$form_state) {
-    parent::options_form($form, $form_state);
 
     $form['vote'] = array(
       '#type' => 'fieldset',
@@ -361,6 +338,17 @@ class votingapi_views_handler_field_vote_value extends votingapi_views_handler_f
       '#default_value' => $this->options['vote']['tag'],
     );
   }
+
+  function render($values) {
+    $value = $values->{$this->field_alias};
+    $function = $this->options['appearance'];
+    if (!empty($function) && function_exists($function)) {
+      return $function($value, $this, $values);
+    }
+    else {
+      return parent::render($values);
+    }
+  }
 }
 
 
@@ -372,36 +360,16 @@ class votingapi_views_handler_field_cache_value extends votingapi_views_handler_
     return array('value_type', 'tag', 'function');
   }
 
-  function options(&$options) {
-    parent::options($options);
-    $options['vote']['value_type'] = '';
-    $options['vote']['tag'] = '';
+  function option_definition() {
+    $options = parent::option_definition();
+
     $options['vote']['function'] = '';
+
+    return $options;
   }
 
   function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
-
-    $form['vote'] = array(
-      '#type' => 'fieldset',
-      '#collapsible' => FALSE,
-      '#title' => t('Vote result details'),
-      '#description' => t('For each node, many vote result values are saved. Use these options to specify which one should appear in this field.'),
-      '#weight' => -10,
-      '#tree' => TRUE,
-    );
-    $form['vote']['value_type'] = array(
-      '#title' => t('Result type'),
-      '#type' => 'select',
-      '#options' => _votingapi_views_cache_value_types(),
-      '#default_value' => $this->options['vote']['value_type'],
-    );
-    $form['vote']['tag'] = array(
-      '#title' => t('Result tag'),
-      '#type' => 'select',
-      '#options' => _votingapi_views_cache_tags(),
-      '#default_value' => $this->options['vote']['tag'],
-    );
     $form['vote']['function'] = array(
       '#title' => t('Result function'),
       '#type' => 'select',
@@ -410,6 +378,7 @@ class votingapi_views_handler_field_cache_value extends votingapi_views_handler_
     );
   }
 }
+
 
 /**
  * @}
@@ -495,4 +464,104 @@ function _votingapi_views_cache_functions() {
     $functions[''] = t('No filtering');
   }
   return $functions;
+}
+
+
+
+class votingapi_views_handler_sort_value extends views_handler_sort {
+  function settings_keys() {
+    return array('value_type', 'tag');
+  }
+
+  function option_definition() {
+    $options = parent::option_definition();
+
+    $options['vote']['value_type'] = '';
+    $options['vote']['tag'] = '';
+
+    return $options;
+  }
+
+  function options_form(&$form, &$form_state) {
+    parent::options_form($form, $form_state);
+
+    $form['vote'] = array(
+      '#type' => 'fieldset',
+      '#collapsible' => FALSE,
+      '#title' => t('Vote result details'),
+      '#description' => t('For each node, many vote result values are saved. Use these options to specify which one should be used to sort.'),
+      '#weight' => -10,
+      '#tree' => TRUE,
+    );
+    $form['vote']['value_type'] = array(
+      '#title' => t('Result type'),
+      '#type' => 'select',
+      '#options' => _votingapi_views_cache_value_types(),
+      '#default_value' => $this->options['vote']['value_type'],
+    );
+    $form['vote']['tag'] = array(
+      '#title' => t('Result tag'),
+      '#type' => 'select',
+      '#options' => _votingapi_views_cache_tags(),
+      '#default_value' => $this->options['vote']['tag'],
+    );
+  }
+
+  /**
+   * Ensure the main table for this handler is in the query. We do somewhat
+   * debauched things here to allow separate copies of the table to be added
+   * for each instance of this field.
+   */
+  function ensure_my_table() {
+    if (!isset($this->table_alias)) {
+      $join_extra[] = array('field' => 'content_type', 'value' => $view->base_table, 'numeric' => FALSE);
+      $alias = $this->table;
+
+      foreach ($this->settings_keys() as $key) {
+        if (!empty($this->options['vote'][$key])) {
+          $join_extra[] = array('field' => $key, 'value' => $this->options['vote'][$key], 'numeric' => FALSE);
+          $alias .= '_'. $this->options['vote'][$key];
+        }
+      }
+      if (empty($alias)) {
+        $alias = NULL;
+      }
+
+      $join = new views_join();
+      $join->construct($this->table, 'node', 'nid', 'content_id', $join_extra);
+
+      $this->table_alias = $this->query->add_table($this->table, $this->relationship, $join, $alias);
+    }
+    return $this->table_alias;
+  }
+
+  function query() {
+    $this->ensure_my_table();
+    $this->query->add_orderby($this->table_alias, $this->real_field, $this->options['order']);
+  }
+}
+
+
+class votingapi_views_handler_sort_cache_value extends votingapi_views_handler_sort_value {
+  function settings_keys() {
+    return array('value_type', 'tag', 'function');
+  }
+
+  function option_definition() {
+    $options = parent::option_definition();
+
+    $options['vote']['function'] = '';
+
+    return $options;
+  }
+
+  function options_form(&$form, &$form_state) {
+    parent::options_form($form, $form_state);
+    $form['vote']['function'] = array(
+      '#title' => t('Result function'),
+      '#type' => 'select',
+      '#options' => _votingapi_views_cache_functions(),
+      '#default_value' => $this->options['vote']['function'],
+    );
+  }
 }

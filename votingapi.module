@@ -474,9 +474,7 @@ function _votingapi_select($table = 'vote', $criteria = array(), $limit = 0) {
  */
 function _votingapi_delete($table = 'vote', $criteria = array(), $limit = 0) {
   $query = "DELETE FROM {votingapi_". $table ."} WHERE 1 = 1";
-
-  $query = "SELECT * FROM {votingapi_". $table ."} v WHERE 1 = 1";
-  $details = _votingapi_query('vote', $criteria);
+  $details = _votingapi_query('vote', $criteria, '');
 
   $query .= $details['query'];
   db_query($query, $details['args']);
@@ -485,7 +483,7 @@ function _votingapi_delete($table = 'vote', $criteria = array(), $limit = 0) {
 /**
  * Internal helper function constructs WHERE clauses. Don't use unless you're me.
  */
-function _votingapi_query($table = 'vote', $criteria = array()) {
+function _votingapi_query($table = 'vote', $criteria = array(), $alias = 'v.') {
   $criteria += array(
     'vote_id' => NULL,
     'vote_cache_id' => NULL,
@@ -503,18 +501,18 @@ function _votingapi_query($table = 'vote', $criteria = array()) {
   $query = '';
   $args = array();
   if (!empty($criteria['vote_id'])) {
-    _votingapi_query_builder('vote_id', $criteria['vote_id'], $query, $args);
+    _votingapi_query_builder($alias . 'vote_id', $criteria['vote_id'], $query, $args);
   } elseif (!empty($criteria['vote_cache_id'])) {
-    _votingapi_query_builder('vote_cache_id', $criteria['vote_cache_id'], $query, $args);
+    _votingapi_query_builder($alias . 'vote_cache_id', $criteria['vote_cache_id'], $query, $args);
   } else {
-    _votingapi_query_builder('content_type', $criteria['content_type'], $query, $args, TRUE);
-    _votingapi_query_builder('content_id', $criteria['content_id'], $query, $args);
-    _votingapi_query_builder('value_type', $criteria['value_type'], $query, $args, TRUE);
-    _votingapi_query_builder('tag', $criteria['tag'], $query, $args, TRUE);
-    _votingapi_query_builder('function', $criteria['function'], $query, $args);
-    _votingapi_query_builder('uid', $criteria['uid'], $query, $args);
-    _votingapi_query_builder('vote_source', $criteria['vote_source'], $query, $args, TRUE);
-    _votingapi_query_builder('timestamp', $criteria['timestamp'], $query, $args);
+    _votingapi_query_builder($alias . 'content_type', $criteria['content_type'], $query, $args, TRUE);
+    _votingapi_query_builder($alias . 'content_id', $criteria['content_id'], $query, $args);
+    _votingapi_query_builder($alias . 'value_type', $criteria['value_type'], $query, $args, TRUE);
+    _votingapi_query_builder($alias . 'tag', $criteria['tag'], $query, $args, TRUE);
+    _votingapi_query_builder($alias . 'function', $criteria['function'], $query, $args);
+    _votingapi_query_builder($alias . 'uid', $criteria['uid'], $query, $args);
+    _votingapi_query_builder($alias . 'vote_source', $criteria['vote_source'], $query, $args, TRUE);
+    _votingapi_query_builder($alias . 'timestamp', $criteria['timestamp'], $query, $args);
   }
   return array('query' => $query, 'args' => $args);
 }
@@ -528,26 +526,30 @@ function _votingapi_query_builder($name, $value, &$query, &$args, $col_is_string
     // Do nothing
   }
   elseif ($name === 'timestamp') {
+    $query .= " AND timestamp >= %d";
+    $args[] = $value;
+  }
+  elseif ($name === 'v.timestamp') {
     $query .= " AND v.timestamp >= %d";
     $args[] = $value;
   }
   else {
     if (is_array($value)) {
       if ($col_is_string) {
-        $query .= " AND v.". $name ." IN ('". array_fill(1, count($value), "'%s'") ."')";
+        $query .= " AND $name IN ('". array_fill(1, count($value), "'%s'") ."')";
         $args += $value;
       }
       else {
-        $query .= " AND v.". $name ." IN (". array_fill(1, count($value), "%d") .")";
+        $query .= " AND $name IN (". array_fill(1, count($value), "%d") .")";
         $args += $value;
       }
     } else {
       if ($col_is_string) {
-        $query .= " AND v.". $name ." = '%s'";
+        $query .= " AND $name = '%s'";
         $args[] = $value;
       }
       else {
-        $query .= " AND v.". $name ." = %d";
+        $query .= " AND $name = %d";
         $args[] = $value;
       }
     }
