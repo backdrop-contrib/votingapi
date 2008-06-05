@@ -514,7 +514,7 @@ class votingapi_views_handler_sort_value extends views_handler_sort {
    */
   function ensure_my_table() {
     if (!isset($this->table_alias)) {
-      $join_extra[] = array('field' => 'content_type', 'value' => $view->base_table, 'numeric' => FALSE);
+      $join_extra[] = array('field' => 'content_type', 'value' => 'node', 'numeric' => FALSE);
       $alias = $this->table;
 
       foreach ($this->settings_keys() as $key) {
