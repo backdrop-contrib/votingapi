@@ -284,7 +284,14 @@ class votingapi_views_handler_field_value extends views_handler_field_numeric {
       $join = new views_join();
       $join->construct($this->table, 'node', 'nid', 'content_id', $join_extra);
 
-      $this->table_alias = $this->query->add_table($this->table, $this->relationship, $join, $alias);
+      if ($table_alias = $this->query->add_table($this->table, $this->relationship, $join, $alias)) {
+        if ($table_alias === TRUE) {
+          $this->table_alias = $alias;
+        }
+        else {
+          $this->table_alias = $table_alias;
+        }
+      }
     }
     return $this->table_alias;
   }
@@ -530,9 +537,15 @@ class votingapi_views_handler_sort_value extends views_handler_sort {
       $join = new views_join();
       $join->construct($this->table, 'node', 'nid', 'content_id', $join_extra);
 
-      $this->table_alias = $this->query->add_table($this->table, $this->relationship, $join, $alias);
+      if ($table_alias = $this->query->add_table($this->table, $this->relationship, $join, $alias)) {
+        if ($table_alias === TRUE) {
+          $this->table_alias = $alias;
+        }
+        else {
+          $this->table_alias = $table_alias;
+        }
+      }
     }
-    return $this->table_alias;
   }
 
   function query() {
