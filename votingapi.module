@@ -509,7 +509,7 @@ function _votingapi_query($table = 'vote', $criteria = array(), $alias = 'v.') {
     _votingapi_query_builder($alias . 'content_id', $criteria['content_id'], $query, $args);
     _votingapi_query_builder($alias . 'value_type', $criteria['value_type'], $query, $args, TRUE);
     _votingapi_query_builder($alias . 'tag', $criteria['tag'], $query, $args, TRUE);
-    _votingapi_query_builder($alias . 'function', $criteria['function'], $query, $args);
+    _votingapi_query_builder($alias . 'function', $criteria['function'], $query, $args, TRUE);
     _votingapi_query_builder($alias . 'uid', $criteria['uid'], $query, $args);
     _votingapi_query_builder($alias . 'vote_source', $criteria['vote_source'], $query, $args, TRUE);
     _votingapi_query_builder($alias . 'timestamp', $criteria['timestamp'], $query, $args);
