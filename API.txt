@@ -42,54 +42,29 @@ value        -- The value of the aggregate function.
 timestamp    -- The time the results were calculated.
 
 
-How it works (high-level overview)
-==================================
-  An example: SimpleVote
-    Load the vote results
-    Display the vote results
-    Cast a vote
-      (invisible steps: recalculation)
-    And so on, ad infitum
-
-
-Using the API (The Easy Way)
-============================
-  High-level functions
-    votingapi_set_vote()
-    votingapi_select_results()
-
-Using the API (With Full Control)
-=================================
-  Core functions (for full control)
-    votingapi_add_vote()
-    votingapi_change_vote()
-    votingapi_delete_vote()
-    votingapi_delete_votes()
-    votingapi_recalculate_results()
-    votingapi_get_user_votes()
-    votingapi_get_content_votes()
-
-
-VotingAPI hooks (Bending the API to your will)
-================================================
-  hook_votingapi_insert($vote)
-  hook_votingapi_update($vote, $new_value)
-  hook_votingapi_delete($vote)
-
-  hook_votingapi_results_alter(&$results, $content_type, $content_id)
-  hook_votingapi_results($results, $content_type, $content_id)
-
 Upgrading from VotingAPI 1.x
 ============================
 Version 2.0 of VotingAPI offers several notable changes. Modules MUST be updated to work with VotingAPI 2.0, but changes for most modules should be minimal. Among other things, version 2.0 offers automatic support for anonymous votes -- something that required custom vote handling in version 1.x.
 
 1) Functions accept objects and arrays of objects instead of long parameter lists
+VotingAPI 1.x used relatively complex parameter lists in its most commonly used functions. In version 2.x, VotingAPI vote-casting functions accept a single vote object or array of vote objects, while vote and result retrieval functions accept a keyed array describing the filter criteria to be used. 
 
-2) Retrieval functions consolidated
+2) hook_votingapi_update() Removed
+This function allowed modules to intervene whenever a user changed their vote. The processing overhead that it imposed on most operations, however, was severe. No modules in contrib implemented the hook, and it has been eliminated. hook_votingapi_insert() and hook_votingapi_delete() are still available.
 
-3) Lesser-used hooks eliminated
+3) Retrieval functions consolidated
+In VotingAPI 1.x, votes for a content object were retrieved using a dizzying array of functions, including the ugly buy often-used internal function, _votingapi_get_raw_votes(). In version 2.x, the following functions are provided:
+
+* votingapi_select_votes();
+* votingapi_select_results();
+* votingapi_select_single_vote_value()
+* votingapi_select_single_result_value();
 
 4) Custom result calculations must do their own SQL
+In version 1.x, VotingAPI loaded all votes for a given content object in order to calculate the average vote using PHP. Modules calculating their own results (median, etc.) were handed the stack of vote objects and given an opportunity to do more using hook_votingapi_calculate(). This was fine for simple cases, but consumed monstrous amounts of RAM whenever a single piece of content accumulated large numbers of votes.
+
+In version 2.x, VotingAPI modules may implement hook_votingapi_results_alter() instead. They receive the same information about the content object, and the stack of results to modify, but are responsible for using their own SQL to generate their results. Fortunately, most modules implementing custom results required complex calculations more efficiently done in SQL anyways.
+
 
 An example custom calculation
 =============================

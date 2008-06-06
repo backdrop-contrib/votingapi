@@ -38,3 +38,9 @@ First run at a Drupal 6 compatible version (after an ill-fated accidental checki
 04/09/08
 --------
 Several important bug fixes for the D6 version of VotingAPI. #223517, #232233, #232236, and #235174 fixed thanks to patches posted by quicksketch and sammys. Also checked in an initial stub file for views2 integration, removing the old hook_init() code since Views2 handles pulling the .inc files in itself.
+
+06/05/08
+--------
+Views integration rewritten from scratch - many old limitations and snafus are now gone, thankfully. Several default views will be included in the final release.
+
+Calculation of vote results no longer loads all votes into memory: modules that implement custom result algorithms must do their own SQL. This saves tremendous amounts of RAM on sites with large numbers of votes on a single content object.
