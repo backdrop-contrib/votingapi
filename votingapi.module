@@ -2,17 +2,17 @@
 /* $Id$ */
 
 /**
- * VotingAPI 2.0
+ * @file
+ * A generalized voting API for Drupal.
  *
- * A generalized voting API for Drupal. Modules can cast votes with arbitrary
- * properties and VotingAPI will total them automatically. Support for basic
- * anonymous voting by IP address, multi-criteria voting, arbitrary aggregation
- * functions, etc.
+ * Maintains and provides an interface for a shared bin of vote and rating
+ * data. Modules can cast votes with arbitrary properties and VotingAPI will
+ * total them automatically. Support for basic anonymous voting by IP address,
+ * multi-criteria voting, arbitrary aggregation functions, etc.
  */
 
 /**
- * Implementation of hook_menu. Adds the url path for the votingapi settings
- * page.
+ * Implementation of hook_menu.
  */
 function votingapi_menu() {
   $items = array();
@@ -29,8 +29,7 @@ function votingapi_menu() {
 }
 
 /**
- * Implementation of hook_perm. Exposes a permission to edit the module's
- * settings.
+ * Implementation of hook_perm.
  */
 function votingapi_perm() {
   return array('administer voting api');
@@ -86,9 +85,15 @@ function votingapi_settings_form($form_state) {
 
 
 /**
- * Cast a vote on a particular piece of content. If a vote already exists, its
- * value is changed. In most cases, this is the function that should be used by
- * external modules.
+ * Cast a vote on a particular piece of content.
+ *
+ * This function does most of the heavy lifting needed by third-party modules
+ * based on VotingAPI. Handles clearing out old votes for a given piece of
+ * content, saving the incoming votes, and re-tallying the results given the
+ * new data.
+ *
+ * Modules that need more explicit control can call votingapi_add_votes() and
+ * manage the deletion/recalculation tasks manually.
  *
  * @param $votes
  *   An array of votes, each with the following structure:
@@ -119,6 +124,9 @@ function votingapi_settings_form($form_state) {
  *   An array of vote result records affected by the vote. The values are
  *   contained in a nested array keyed thusly:
  *   $value = $results[$content_type][$content_id][$tag][$value_type][$function]
+ *
+ * @see votingapi_add_votes()
+ * @see votingapi_recalculate_results()
  */
 function votingapi_set_votes(&$votes, $criteria = NULL) {
   $touched = array();
@@ -184,6 +192,14 @@ function votingapi_current_user_identifier() {
 /**
  * Save a collection of votes to the database.
  *
+ * This function does most of the heavy lifting for VotingAPI the main
+ * votingapi_set_votes() function, but does NOT automatically triger re-tallying
+ * of results. As such, it's useful for modules that must insert their votes in
+ * separate batches without triggering unecessary recalculation.
+ *
+ * Remember that any module calling this function implicitly assumes responsibility
+ * for calling votingapi_recalculate_results() when all votes have been inserted.
+ *
  * @param $votes
  *   A vote or array of votes, each with the following structure:
  *   $vote['content_type']  (Optional, defaults to 'node')
@@ -196,6 +212,9 @@ function votingapi_current_user_identifier() {
  *   $vote['timestamp']     (Optional, defaults to time())
  * @return
  *   The same votes, with vote_id keys populated.
+ *
+ * @see votingapi_set_votes()
+ * @see votingapi_recalculate_results()
  */
 function votingapi_add_votes(&$votes) {
   if (!empty($votes['content_type'])) {
@@ -211,7 +230,12 @@ function votingapi_add_votes(&$votes) {
 }
 
 /**
- * Save a vote results to the database.
+ * Save a bundle of vote results to the database.
+ *
+ * This function is called by votingapi_recalculate_results() after tallying
+ * the values of all cast votes on a piece of content. This function will be of
+ * little use for most third-party modules, unless they manually insert their
+ * own result data.
  *
  * @param vote_results
  *   An array of vote results, each with the following properties:
@@ -327,6 +351,8 @@ function votingapi_select_results($criteria = array()) {
 }
 
 /**
+ * Recalculates the aggregate results of all votes for a piece of content.
+ *
  * Loads all votes for a given piece of content, then calculates and caches the
  * aggregate vote results. This is only intended for modules that have assumed
  * responsibility for the full voting cycle: the votingapi_set_vote() function
@@ -340,6 +366,8 @@ function votingapi_select_results($criteria = array()) {
  * @return
  *   An array of the resulting votingapi_cache records, structured thusly:
  *   $value = $results[$ag][$value_type][$function]
+ *
+ * @see votingapi_set_votes()
  */
 function votingapi_recalculate_results($content_type, $content_id, $force_calculation = FALSE) {
   // if we're operating in cron mode, and the 'force recalculation' flag is NOT set,
@@ -382,8 +410,7 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
 
 
 /**
- * Internal function - builds the default set of VotingAPI results
- * for the three supported voting styles.
+ * Builds the default VotingAPI results for the three supported voting styles.
  */
 function _votingapi_get_standard_results($content_type, $content_id) {
   $cache = array();
@@ -416,8 +443,7 @@ function _votingapi_get_standard_results($content_type, $content_id) {
 }
 
 /**
- * Simple wrapper function for votingapi_select_votes. Returns the
- * value of the first vote matching the criteria passed in.
+ * Retrieve the value of the first vote matching the criteria passed in.
  */
 function votingapi_select_single_vote_value($criteria = array()) {
   if ($votes = votingapi_select_votes($criteria)) {
@@ -426,8 +452,7 @@ function votingapi_select_single_vote_value($criteria = array()) {
 }
 
 /**
- * Simple wrapper function for votingapi_select_results. Returns the
- * value of the first result matching the criteria passed in.
+ * Retrieve the value of the first result matching the criteria passed in.
  */
 function votingapi_select_single_result_value($criteria = array()) {
   if ($results = votingapi_select_results($criteria)) {
