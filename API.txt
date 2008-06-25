@@ -13,8 +13,7 @@ Create/Retrieve/Update/Delete operations for voting data. The simplest modules o
 Every time a user casts a vote, VotingAPI calculates the results and caches them for you. You can use the default calculations (like average, total, etc) or implement your own custom tallying functions.
 
 3) Display
-VotingAPI integrates with Views.module, allowing you to slice and dice your site's content based on user consensus. While some custom modules may need to implement thier own Views integration to provide customized integration, the vast majority can use the built-in system without any additional work.
-
+VotingAPI integrates with Views.module, allowing you to slice and dice your site's content based on user consensus. While some custom modules may need to implement thier own Views integration to provide customized displays, the vast majority can use the built-in system without any additional work.
 
 How Data Is Stored
 ==================
@@ -47,7 +46,7 @@ Upgrading from VotingAPI 1.x
 Version 2.0 of VotingAPI offers several notable changes. Modules MUST be updated to work with VotingAPI 2.0, but changes for most modules should be minimal. Among other things, version 2.0 offers automatic support for anonymous votes -- something that required custom vote handling in version 1.x.
 
 1) Functions accept objects and arrays of objects instead of long parameter lists
-VotingAPI 1.x used relatively complex parameter lists in its most commonly used functions. In version 2.x, VotingAPI vote-casting functions accept a single vote object or array of vote objects, while vote and result retrieval functions accept a keyed array describing the filter criteria to be used. 
+VotingAPI 1.x used relatively complex parameter lists in its most commonly used functions. In version 2.x, VotingAPI vote-casting functions accept a single vote object or array of vote objects, while vote and result retrieval functions accept a keyed array describing the filter criteria to be used.
 
 2) hook_votingapi_update() Removed
 This function allowed modules to intervene whenever a user changed their vote. The processing overhead that it imposed on most operations, however, was severe. No modules in contrib implemented the hook, and it has been eliminated. hook_votingapi_insert() and hook_votingapi_delete() are still available.
@@ -64,6 +63,9 @@ In VotingAPI 1.x, votes for a content object were retrieved using a dizzying arr
 In version 1.x, VotingAPI loaded all votes for a given content object in order to calculate the average vote using PHP. Modules calculating their own results (median, etc.) were handed the stack of vote objects and given an opportunity to do more using hook_votingapi_calculate(). This was fine for simple cases, but consumed monstrous amounts of RAM whenever a single piece of content accumulated large numbers of votes.
 
 In version 2.x, VotingAPI modules may implement hook_votingapi_results_alter() instead. They receive the same information about the content object, and the stack of results to modify, but are responsible for using their own SQL to generate their results. Fortunately, most modules implementing custom results required complex calculations more efficiently done in SQL anyways.
+
+5) New views integration hooks
+VotingAPI 2.0's enhanced Views integration actually works this time around. In addition, it supports any base table Views can throw at it: Users? Comments? Files? All possible. Modules that cast votes on these data types, however, need to implement hook_votingapi_views_content_types() to let VotingAPI know what base tables should get the relationships.
 
 
 An example custom calculation
@@ -90,4 +92,17 @@ function mymodule_votingapi_results_alter(&$results, $content_type, $content_id)
   while ($result = db_fetch_array($results)) {
     $cache[$result['tag']]['percent']['standard_deviation'] = $result['standard_deviation'];
   }
+}
+
+An example of advanced Views integration
+========================================
+function mymodule_votingapi_views_content_types() {
+  // MyModule allows users to cast votes on comments, not just nodes. We want
+  // VotingAPI fields to appear in views of comments, too!
+  return array(
+    'comment' => array(               // The value in VotingAPI's content_type
+      'content_table' => 'comments',  // The table that holds the entities
+      'content_id_column' => 'cid',   // The primary key column for the entity
+    )
+  )
 }

@@ -24,26 +24,6 @@ function votingapi_views_data() {
   $data['votingapi_vote']['table']['group']  = t('Voting API votes');
   $data['votingapi_cache']['table']['group']  = t('Voting API results');
 
-  // For other base tables, explain how we join
-  $data['votingapi_vote']['table']['join'] = array(
-    'node' => array(
-      'left_field' => 'nid',
-      'field' => 'content_id',
-      'extra' => array(
-        array('field' => 'content_type', 'value' => 'node', 'numeric' => FALSE),
-      ),
-    ),
-  );
-  $data['votingapi_cache']['table']['join'] = array(
-    'node' => array(
-      'left_field' => 'nid',
-      'field' => 'content_id',
-      'extra' => array(
-        array('field' => 'content_type', 'value' => 'node', 'numeric' => FALSE),
-      ),
-    ),
-  );
-
   // ----------------------------------------------------------------
   // Fields
 
@@ -61,7 +41,7 @@ function votingapi_views_data() {
        'label' => t('Value'),
        ),
     'sort' => array(
-      'handler' => 'votingapi_views_handler_sort_value',
+      'handler' => 'views_handler_sort',
     ),
   );
 
@@ -91,16 +71,15 @@ function votingapi_views_data() {
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
-     ),
-     'filter' => array(
-       'handler' => 'views_handler_filter_string',
-       'label' => t('Value type'),
-       ),
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+      'label' => t('Value type'),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
   );
-
 
   // uid
   $data['votingapi_vote']['uid'] = array(
@@ -110,11 +89,11 @@ function votingapi_views_data() {
     'field' => array(
       'handler' => 'views_handler_field_user',
       'click sortable' => TRUE,
-     ),
-     'filter' => array(
-       'handler' => 'views_handler_filter_user_name',
-       'label' => t('Value type'),
-       ),
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_user_name',
+      'label' => t('Value type'),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
@@ -175,7 +154,7 @@ function votingapi_views_data() {
        'label' => t('Value'),
        ),
     'sort' => array(
-      'handler' => 'votingapi_views_handler_sort_cache_value',
+      'handler' => 'views_handler_sort',
     ),
   );
 
@@ -257,54 +236,9 @@ function votingapi_views_data() {
 
 
 class votingapi_views_handler_field_value extends views_handler_field_numeric {
-  function settings_keys() {
-    return array('value_type', 'tag');
-  }
-
-  /**
-   * Ensure the main table for this handler is in the query. We do somewhat
-   * debauched things here to allow separate copies of the table to be added
-   * for each instance of this field.
-   */
-  function ensure_my_table() {
-    if (!isset($this->table_alias)) {
-      $join_extra[] = array('field' => 'content_type', 'value' => 'node', 'numeric' => FALSE);
-      $alias = $this->table;
-
-      foreach ($this->settings_keys() as $key) {
-        if (!empty($this->options['vote'][$key])) {
-          $join_extra[] = array('field' => $key, 'value' => $this->options['vote'][$key], 'numeric' => FALSE);
-          $alias .= '_'. $this->options['vote'][$key];
-        }
-      }
-      if (empty($alias)) {
-        $alias = NULL;
-      }
-
-      $join = new views_join();
-      $join->construct($this->table, 'node', 'nid', 'content_id', $join_extra);
-
-      if ($table_alias = $this->query->add_table($this->table, $this->relationship, $join, $alias)) {
-        if ($table_alias === TRUE) {
-          $this->table_alias = $alias;
-        }
-        else {
-          $this->table_alias = $table_alias;
-        }
-      }
-    }
-    return $this->table_alias;
-  }
-
-
   function option_definition() {
     $options = parent::option_definition();
-
     $options['appearance'] = '';
-
-    $options['vote']['value_type'] = '';
-    $options['vote']['tag'] = '';
-
     return $options;
   }
 
@@ -312,7 +246,7 @@ class votingapi_views_handler_field_value extends views_handler_field_numeric {
     parent::options_form($form, $form_state);
 
     $appearances = array('' => t('Default appearance'));
-    $appearances += module_invoke_all('votingapi_views_value_formatter');
+    $appearances += module_invoke_all('votingapi_views_formatter', 'value');
 
     if (count($appearances) > 1) {
       $form['appearance'] = array(
@@ -323,27 +257,6 @@ class votingapi_views_handler_field_value extends views_handler_field_numeric {
         '#weight' => -5,
       );
     }
-
-    $form['vote'] = array(
-      '#type' => 'fieldset',
-      '#collapsible' => FALSE,
-      '#title' => t('Vote details'),
-      '#description' => t('For each node, many vote values may be saved saved. Use these options to specify which one should appear in this field.'),
-      '#weight' => -10,
-      '#tree' => TRUE,
-    );
-    $form['vote']['value_type'] = array(
-      '#title' => t('Result type'),
-      '#type' => 'select',
-      '#options' => _votingapi_views_vote_value_types(),
-      '#default_value' => $this->options['vote']['value_type'],
-    );
-    $form['vote']['tag'] = array(
-      '#title' => t('Result tag'),
-      '#type' => 'select',
-      '#options' => _votingapi_views_vote_tags(),
-      '#default_value' => $this->options['vote']['tag'],
-    );
   }
 
   function render($values) {
@@ -358,48 +271,18 @@ class votingapi_views_handler_field_value extends views_handler_field_numeric {
   }
 }
 
-
-/**
- * Field handler to add additional filters when a value is displayed.
- */
-class votingapi_views_handler_field_cache_value extends votingapi_views_handler_field_value {
-  function settings_keys() {
-    return array('value_type', 'tag', 'function');
-  }
-
-  function option_definition() {
-    $options = parent::option_definition();
-
-    $options['vote']['function'] = '';
-
-    return $options;
-  }
-
-  function options_form(&$form, &$form_state) {
-    parent::options_form($form, $form_state);
-    $form['vote']['function'] = array(
-      '#title' => t('Result function'),
-      '#type' => 'select',
-      '#options' => _votingapi_views_cache_functions(),
-      '#default_value' => $this->options['vote']['function'],
-    );
-  }
-}
-
-
 /**
  * @}
  */
 
-
-function _votingapi_views_vote_value_types() {
+function _votingapi_views_value_types($table = 'votingapi_vote') {
   static $types;
   if (!isset($types)) {
     $types = array(
       'percent' => t('Percent'),
       'points' => t('Points')
     );
-    $results = db_query("SELECT DISTINCT value_type FROM {votingapi_vote}");
+    $results = db_query("SELECT DISTINCT value_type FROM {" . $table . "}");
     while ($tmp = db_fetch_object($results)) {
       $types[$tmp->value_type] = drupal_ucfirst($tmp->value_type);
     }
@@ -408,13 +291,13 @@ function _votingapi_views_vote_value_types() {
   return $types;
 }
 
-function _votingapi_views_vote_tags() {
+function _votingapi_views_tags($table = 'votingapi_vote') {
   static $tags;
   if (!isset($tags)) {
     $tags = array(
       'vote' => t('Default vote'),
     );
-    $results = db_query("SELECT DISTINCT tag FROM {votingapi_vote}");
+    $results = db_query("SELECT DISTINCT tag FROM {" . $table . "}");
     while ($tmp = db_fetch_object($results)) {
       $tags[$tmp->tag] = drupal_ucfirst($tmp->tag);
     }
@@ -423,40 +306,7 @@ function _votingapi_views_vote_tags() {
   return $tags;
 }
 
-
-
-function _votingapi_views_cache_value_types() {
-  static $types;
-  if (!isset($types)) {
-    $types = array(
-      'percent' => t('Percent'),
-      'points' => t('Points')
-    );
-    $results = db_query("SELECT DISTINCT value_type FROM {votingapi_cache}");
-    while ($tmp = db_fetch_object($results)) {
-      $types[$tmp->value_type] = drupal_ucfirst($tmp->value_type);
-    }
-    $types[''] = t('No filtering');
-  }
-  return $types;
-}
-
-function _votingapi_views_cache_tags() {
-  static $tags;
-  if (!isset($tags)) {
-    $tags = array(
-      'vote' => t('Default vote'),
-    );
-    $results = db_query("SELECT DISTINCT tag FROM {votingapi_cache}");
-    while ($tmp = db_fetch_object($results)) {
-      $tags[$tmp->tag] = drupal_ucfirst($tmp->tag);
-    }
-    $tags[''] = t('No filtering');
-  }
-  return $tags;
-}
-
-function _votingapi_views_cache_functions() {
+function _votingapi_views_functions() {
   static $functions;
   if (!isset($functions)) {
     $functions = array(
@@ -473,108 +323,163 @@ function _votingapi_views_cache_functions() {
   return $functions;
 }
 
+function votingapi_views_data_alter(&$views_data) {
+  // Add relationship handlers for both tables, for any base tables currently
+  // available to Views.
 
+  $default_relationships = module_invoke_all('votingapi_views_content_types');
+  $default_relationships += array('node' => array('content_table' => 'node', 'content_id_column' => 'nid'));
 
-class votingapi_views_handler_sort_value extends views_handler_sort {
-  function settings_keys() {
-    return array('value_type', 'tag');
-  }
-
-  function option_definition() {
-    $options = parent::option_definition();
-
-    $options['vote']['value_type'] = '';
-    $options['vote']['tag'] = '';
-
-    return $options;
-  }
-
-  function options_form(&$form, &$form_state) {
-    parent::options_form($form, $form_state);
-
-    $form['vote'] = array(
-      '#type' => 'fieldset',
-      '#collapsible' => FALSE,
-      '#title' => t('Vote result details'),
-      '#description' => t('For each node, many vote result values are saved. Use these options to specify which one should be used to sort.'),
-      '#weight' => -10,
-      '#tree' => TRUE,
+  foreach($default_relationships as $content_type => $data) {
+    $views_data[$data['content_table']]['votingapi_vote']['relationship'] = array(
+      'title' => 'Individual votes',
+      'help' => "Votes cast by users on $content_type content.",
+      'base' => 'votingapi_vote',
+      'field' => 'content_id',
+      'relationship field' => $data['content_id_column'],
+      'handler' => 'votingapi_views_handler_relationship',
+      'extra' => array(
+        array(
+          'field' => 'content_type',
+          'value' => $content_type,
+          'numeric' => FALSE
+        ),
+      ),
     );
-    $form['vote']['value_type'] = array(
-      '#title' => t('Result type'),
-      '#type' => 'select',
-      '#options' => _votingapi_views_cache_value_types(),
-      '#default_value' => $this->options['vote']['value_type'],
+
+    $views_data[$data['content_table']]['votingapi_cache']['relationship'] = array(
+      'title' => 'Voting results',
+      'help' => "The aggregate results of votes cast on $content_type content.",
+      'base' => 'votingapi_cache',
+      'field' => 'content_id',
+      'relationship field' => $data['content_id_column'],
+      'handler' => 'votingapi_views_handler_relationship',
+      'extra' => array(
+        array(
+          'field' => 'content_type',
+          'value' => $content_type,
+          'numeric' => FALSE
+        ),
+      ),
     );
-    $form['vote']['tag'] = array(
-      '#title' => t('Result tag'),
-      '#type' => 'select',
-      '#options' => _votingapi_views_cache_tags(),
-      '#default_value' => $this->options['vote']['tag'],
-    );
-  }
-
-  /**
-   * Ensure the main table for this handler is in the query. We do somewhat
-   * debauched things here to allow separate copies of the table to be added
-   * for each instance of this field.
-   */
-  function ensure_my_table() {
-    if (!isset($this->table_alias)) {
-      $join_extra[] = array('field' => 'content_type', 'value' => 'node', 'numeric' => FALSE);
-      $alias = $this->table;
-
-      foreach ($this->settings_keys() as $key) {
-        if (!empty($this->options['vote'][$key])) {
-          $join_extra[] = array('field' => $key, 'value' => $this->options['vote'][$key], 'numeric' => FALSE);
-          $alias .= '_'. $this->options['vote'][$key];
-        }
-      }
-      if (empty($alias)) {
-        $alias = NULL;
-      }
-
-      $join = new views_join();
-      $join->construct($this->table, 'node', 'nid', 'content_id', $join_extra);
-
-      if ($table_alias = $this->query->add_table($this->table, $this->relationship, $join, $alias)) {
-        if ($table_alias === TRUE) {
-          $this->table_alias = $alias;
-        }
-        else {
-          $this->table_alias = $table_alias;
-        }
-      }
-    }
-  }
-
-  function query() {
-    $this->ensure_my_table();
-    $this->query->add_orderby($this->table_alias, $this->real_field, $this->options['order']);
   }
 }
 
-
-class votingapi_views_handler_sort_cache_value extends votingapi_views_handler_sort_value {
-  function settings_keys() {
-    return array('value_type', 'tag', 'function');
-  }
-
+/**
+ * A custom join handler that connects arbitrary base tables to VotingAPI's data.
+ *
+ * The base relationship handler can only handle a single join. Some relationships
+ * are more complex and might require chains of joins; for those, you must
+ * utilize a custom relationship handler.
+ *
+ * Definition items:
+ * - base: The new base table this relationship will be adding. This does not
+ *   have to be a declared base table, but if there are no tables that
+ *   utilize this base table, it won't be very effective.
+ * - relationship table: The actual table this relationship operates against.
+ *   This is analogous to using a 'table' override.
+ * - relationship field: The actual field this relationsihp operates against.
+ *   This is analogous to using a 'real field' override.
+ * - label: The default label to provide for this relationship, which is
+ *   shown in parentheses next to any field/sort/filter/argument that uses
+ *   the relationship.
+ */
+class votingapi_views_handler_relationship extends views_handler_relationship {
   function option_definition() {
     $options = parent::option_definition();
 
-    $options['vote']['function'] = '';
+    $label = !empty($this->definition['label']) ? $this->definition['label'] : $this->definition['title'];
+    $options['label'] = array('default' => $label, 'translatable' => TRUE);
+
+    $options['votingapi']['value_type'] = array('default' => NULL);
+    $options['votingapi']['tag'] = array('default' => NULL);
+    if ($this->definition['base'] == 'votingapi_cache') {
+      $options['votingapi']['function'] = array('default' => NULL);
+    }
 
     return $options;
   }
 
+  /**
+   * Default options form that provides the label widget that all fields
+   * should have.
+   */
   function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
-    $form['vote']['function'] = array(
-      '#title' => t('Result function'),
-      '#type' => 'select',
-      '#options' => _votingapi_views_cache_functions(),
-      '#default_value' => $this->options['vote']['function'],
+
+    $form['votingapi'] = array(
+      '#type' => 'fieldset',
+      '#collapsible' => FALSE,
+      '#title' => t('Data filters'),
+      '#description' => t('For each piece of content, many pieces of voting data may be saved. Use these options to specify exactly which types should be available via this relationship. <strong>Warning!</strong> Leaving any of these filters empty may result in multiple copies of each piece of content being displayed in listings.'),
+      '#tree' => TRUE,
     );
+    $form['votingapi']['value_type'] = array(
+      '#title' => t('Value type'),
+      '#type' => 'select',
+      '#options' => _votingapi_views_value_types($this->definition['base']),
+      '#default_value' => $this->options['votingapi']['value_type'],
+    );
+    $form['votingapi']['tag'] = array(
+      '#title' => t('Vote tag'),
+      '#type' => 'select',
+      '#options' => _votingapi_views_tags($this->definition['base']),
+      '#default_value' => $this->options['votingapi']['tag'],
+    );
+
+    if ($this->definition['base'] == 'votingapi_cache') {
+      $form['votingapi']['function'] = array(
+        '#title' => t('Aggregation function'),
+        '#type' => 'select',
+        '#options' => _votingapi_views_functions(),
+        '#default_value' => $this->options['votingapi']['function'],
+      );
+    }
+    else {
+
+    }
+  }
+
+  /**
+   * Called to implement a relationship in a query.
+   */
+  function query() {
+    // Figure out what base table this relationship brings to the party.
+    $table_data = views_fetch_data($this->definition['base']);
+
+    $def = $this->definition;
+    $def['table'] = $this->definition['base'];
+    $def['field'] = 'content_id';
+    $def['left_table'] = $this->table;
+    $def['left_field'] = $this->field;
+    if (!empty($this->options['required'])) {
+      $def['type'] = 'INNER';
+    }
+
+    if (!empty($def['join_handler']) && class_exists($def['join_handler'])) {
+      $join = new $def['join_handler'];
+    }
+    else {
+      $join = new views_join();
+    }
+
+    // use a short alias for this:
+    $alias = $def['table'] . '_' . $def['left_table'];
+
+    foreach ($this->options['votingapi'] as $field => $value) {
+      $def['extra'][] = array(
+        'field' => $field,
+        'value' => $value,
+        'numeric' => FALSE
+      );
+      $alias .= '_'. $value;
+    }
+
+    $join->definition = $def;
+    $join->construct();
+
+    $this->ensure_my_table();
+
+    $this->alias = $this->query->add_relationship($alias, $join, $this->definition['base'], $this->relationship);
   }
 }

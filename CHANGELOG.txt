@@ -44,3 +44,7 @@ Several important bug fixes for the D6 version of VotingAPI. #223517, #232233, #
 Views integration rewritten from scratch - many old limitations and snafus are now gone, thankfully. Several default views will be included in the final release.
 
 Calculation of vote results no longer loads all votes into memory: modules that implement custom result algorithms must do their own SQL. This saves tremendous amounts of RAM on sites with large numbers of votes on a single content object.
+
+06/24/08
+--------
+Views integration code seriously reworked (again) to use Views 2 'relationships' rather than custom field handlers. Downside: for the VotingAPI fields, sorts, and filters to appear, a relationship must first be added to it. Upside: using hook_votingapi_views_content_types(), modules that cast votes on non-node content can tell VotingAPI to add its relationship to other tables too (like users, comments, etc). This should make it much, much easier to build displays of vote-aware content that lives in non-node base tables.
