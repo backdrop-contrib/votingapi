@@ -146,7 +146,7 @@ function votingapi_views_data() {
     'help' => t('The value of an individual cast vote.'), // The help that appears on the UI,
      // Information for displaying a title as a field
     'field' => array(
-      'handler' => 'votingapi_views_handler_field_cache_value',
+      'handler' => 'votingapi_views_handler_field_value',
       'click sortable' => TRUE,
      ),
      'filter' => array(
@@ -245,14 +245,15 @@ class votingapi_views_handler_field_value extends views_handler_field_numeric {
   function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
 
-    $appearances = array('' => t('Default appearance'));
-    $appearances += module_invoke_all('votingapi_views_formatter', 'value');
+    $appearances = module_invoke_all('votingapi_views_formatters', $this);
+    $options = array('' => t('Default appearance'));
+    $options += $appearances;
 
-    if (count($appearances) > 1) {
+    if (count($options) > 1) {
       $form['appearance'] = array(
         '#type' => 'select',
         '#title' => t('Appearance'),
-        '#options' => $appearances,
+        '#options' => $options,
         '#default_value' => $this->options['appearance'],
         '#weight' => -5,
       );
