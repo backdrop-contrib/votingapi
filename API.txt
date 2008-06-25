@@ -64,8 +64,12 @@ In version 1.x, VotingAPI loaded all votes for a given content object in order t
 
 In version 2.x, VotingAPI modules may implement hook_votingapi_results_alter() instead. They receive the same information about the content object, and the stack of results to modify, but are responsible for using their own SQL to generate their results. Fortunately, most modules implementing custom results required complex calculations more efficiently done in SQL anyways.
 
-5) New views integration hooks
-VotingAPI 2.0's enhanced Views integration actually works this time around. In addition, it supports any base table Views can throw at it: Users? Comments? Files? All possible. Modules that cast votes on these data types, however, need to implement hook_votingapi_views_content_types() to let VotingAPI know what base tables should get the relationships.
+5) Views integration hooks have changed
+VotingAPI now supports any valid base table when exposing its data to Views. Modules that cast votes on non-node content can implement hook_votingapi_views_content_types() to let VotingAPI know what base tables should get the relationships.
+
+Because Views' internal data structures have changed, and the VotingAPI integration now supports additional base tables, the data handed off to hook_votingapi_views_formatters() has changed. See the reference at the bottom of this document for an example implementation.
+
+In the future, modules that need to offer highly customized ways of presenting VotingAPI data in a view are advised to use hook_views_data_alter() to simply add a new custom field to the VotingAPI table definition. That will give full control over display and filtering, but will take advantage of the flexible, base-table-agnostic join handlers VotingAPI provides.
 
 
 An example custom calculation
@@ -105,4 +109,15 @@ function mymodule_votingapi_views_content_types() {
       'content_id_column' => 'cid',   // The primary key column for the entity
     )
   )
+}
+
+An example of a custom Views value formatter
+============================================
+function mymodule_votingapi_views_formatters($field) {
+  if ($field->field == 'value') {
+    return array('mymodule_funky_formatter' => t('MyModule value formatter'));
+  }
+  if ($field->field == 'tag') {
+    return array('mymodule_funky_tags' => t('MyModule tag formatter'));
+  }
 }
