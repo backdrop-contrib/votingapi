@@ -467,13 +467,17 @@ class votingapi_views_handler_relationship extends views_handler_relationship {
     // use a short alias for this:
     $alias = $def['table'] . '_' . $def['left_table'];
 
-    foreach ($this->options['votingapi'] as $field => $value) {
-      $def['extra'][] = array(
-        'field' => $field,
-        'value' => $value,
-        'numeric' => FALSE
-      );
-      $alias .= '_'. $value;
+    if (!empty($this->options['votingapi'])) {
+      foreach ($this->options['votingapi'] as $field => $value) {
+        if (!empty($value)) {
+          $def['extra'][] = array(
+            'field' => $field,
+            'value' => $value,
+            'numeric' => FALSE
+          );
+          $alias .= '_'. $value;
+        }
+      }
     }
 
     $join->definition = $def;
