@@ -36,6 +36,13 @@ function votingapi_perm() {
 }
 
 /**
+ * Implementation of hook_views_api.
+ */
+function votingapi_views_api() {
+  return array('api' => 2);
+}
+
+/**
  * Implementation of hook_cron. Allows db-intensive recalculations to be
  * deferred until cron-time.
  */
