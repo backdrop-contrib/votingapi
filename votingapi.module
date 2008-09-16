@@ -137,7 +137,7 @@ function votingapi_settings_form($form_state) {
  */
 function votingapi_set_votes(&$votes, $criteria = NULL) {
   $touched = array();
-  if (!empty($votes['content_type'])) {
+  if (!empty($votes['content_id'])) {
     $votes = array($votes);
   }
 
@@ -153,7 +153,7 @@ function votingapi_set_votes(&$votes, $criteria = NULL) {
   }
   elseif (is_array($criteria)) {
     // The calling function passed in an explicit set of delete filters.
-    if (!empty($criteria['content_type'])) {
+    if (!empty($criteria['content_id'])) {
       $criteria = array($criteria);
     }
     foreach($criteria as $c) {
@@ -224,7 +224,7 @@ function votingapi_current_user_identifier() {
  * @see votingapi_recalculate_results()
  */
 function votingapi_add_votes(&$votes) {
-  if (!empty($votes['content_type'])) {
+  if (!empty($votes['content_id'])) {
     $votes = array($votes);
   }
   foreach ($votes as $key => $vote) {
@@ -255,7 +255,7 @@ function votingapi_add_votes(&$votes) {
  *   $vote_result['timestamp']   (Optional, defaults to time())
  */
 function votingapi_add_results($vote_results = array()) {
-  if (!empty($vote_results['content_type'])) {
+  if (!empty($vote_results['content_id'])) {
     $vote_results = array($vote_results);
   }
 
