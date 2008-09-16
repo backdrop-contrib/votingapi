@@ -21,10 +21,10 @@ function votingapi_views_handlers() {
   return array(
     'handlers' => array(
       'votingapi_views_handler_field_value' => array(
-        'parent' => 'views_handler_relationship',
+        'parent' => 'views_handler_field_numeric',
       ),
       'votingapi_views_handler_relationship' => array(
-        'parent' => 'views_handler_field_numeric',
+        'parent' => 'views_handler_relationship',
       ),
     ),
   );
