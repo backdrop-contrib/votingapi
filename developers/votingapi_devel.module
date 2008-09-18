@@ -96,7 +96,7 @@ function _votingapi_devel_cast_votes($nid, $timestamp, $uids, $style) {
             'uid' => $uid,
             'content_id' => $nid,
             'value_type' => 'percent',
-            'timestamp' => now() - rand(0, now() - $timestamp),
+            'timestamp' => time() - rand(0, time() - $timestamp),
             'value' => rand(0, 5) * 20,
           );
         }
@@ -107,7 +107,7 @@ function _votingapi_devel_cast_votes($nid, $timestamp, $uids, $style) {
             'uid' => $uid,
             'content_id' => $nid,
             'value_type' => 'points',
-            'timestamp' => now() - rand(0, now() - $timestamp),
+            'timestamp' => time() - rand(0, time() - $timestamp),
             'value' => 1,
           );
         }
@@ -118,7 +118,7 @@ function _votingapi_devel_cast_votes($nid, $timestamp, $uids, $style) {
             'uid' => $uid,
             'content_id' => $nid,
             'value_type' => 'points',
-            'timestamp' => now() - rand(0, now() - $timestamp),
+            'timestamp' => time() - rand(0, time() - $timestamp),
             'value' => rand(0, 1) ? 1 : -1,
           );
         }
