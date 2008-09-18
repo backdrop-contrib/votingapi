@@ -1,0 +1,6 @@
+; $Id$
+name = VotingAPI Devel
+description = A set of developer aids and troubleshooting utilities for VotingAPI. Some functionality depends on the presence of the Devel Generate module. 
+dependencies[] = votingapi
+dependencies[] = devel_generate
+core = 6.x

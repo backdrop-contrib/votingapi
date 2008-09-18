@@ -22,9 +22,11 @@ function votingapi_views_handlers() {
     'handlers' => array(
       'votingapi_views_handler_field_value' => array(
         'parent' => 'views_handler_field_numeric',
+        'path' => drupal_get_path('module', 'votingapi') . '/views',
       ),
       'votingapi_views_handler_relationship' => array(
         'parent' => 'views_handler_relationship',
+        'path' => drupal_get_path('module', 'votingapi') . '/views',
       ),
     ),
   );

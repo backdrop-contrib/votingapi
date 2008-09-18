@@ -39,7 +39,10 @@ function votingapi_perm() {
  * Implementation of hook_views_api.
  */
 function votingapi_views_api() {
-  return array('api' => 2);
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'votingapi') . '/views',
+  );
 }
 
 /**
@@ -118,7 +121,7 @@ function votingapi_settings_form($form_state) {
  *   by the current user will be reset. If an empty array is passed in, no votes
  *   will be reset and all incoming votes will be saved IN ADDITION to existing
  *   ones.
- *   $criteria['vote_id']     (If this is set, all other keyes are skipped)
+ *   $criteria['vote_id']     (If this is set, all other keys are skipped)
  *   $criteria['content_type']
  *   $criteria['content_type']
  *   $criteria['value_type']
