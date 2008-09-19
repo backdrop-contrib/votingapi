@@ -48,3 +48,7 @@ Calculation of vote results no longer loads all votes into memory: modules that 
 06/24/08
 --------
 Views integration code seriously reworked (again) to use Views 2 'relationships' rather than custom field handlers. Downside: for the VotingAPI fields, sorts, and filters to appear, a relationship must first be added to it. Upside: using hook_votingapi_views_content_types(), modules that cast votes on non-node content can tell VotingAPI to add its relationship to other tables too (like users, comments, etc). This should make it much, much easier to build displays of vote-aware content that lives in non-node base tables.
+
+09/19/08
+--------
+Updated for compatibility with Views RC2, added the ability to filter Views relationships to votes cast by the current user, and added three default views to demonstrate the Views integration. Also added basic Simpletests, fixed a bug that manifested when modules cast votes with minimal information (nothing but a content id and a value, for example). Finally, added the ability to auto-generate dummy votes for testing purposes. This feature is only visible if Devel Generate module is installed and activated.
