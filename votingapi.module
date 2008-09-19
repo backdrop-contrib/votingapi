@@ -23,8 +23,21 @@ function votingapi_menu() {
     'page arguments' => array('votingapi_settings_form'),
     'access callback' => 'user_access',
     'access arguments' => array('administer voting api'),
+    'file' => 'votingapi.admin.inc',
     'type' => MENU_NORMAL_ITEM
   );
+
+  if (module_exists('devel')) {
+    $items['admin/generate/votingapi'] = array(
+      'title' => 'Generate votes',
+      'description' => 'Generate a given number of votes on site content. Optionally delete existing votes.',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('votingapi_generate_votes_form'),
+      'access arguments' => array('administer voting api'),
+      'file' => 'votingapi.admin.inc',
+    );
+  }
+
   return $items;
 }
 
@@ -62,37 +75,6 @@ function votingapi_cron() {
     variable_set('votingapi_last_cron', $time);
   }
 }
-
-/**
- * Administrative settings for VotingAPI.
- */
-function votingapi_settings_form($form_state) {
-  $period = array(0 => t('Immediately')) + drupal_map_assoc(array(300, 900, 1800, 3600, 10800, 21600, 32400, 43200, 86400, 172800, 345600, 604800), 'format_interval') + array(-1 => t('Never'));
-
-  $form['votingapi_anonymous_window'] = array(
-    '#type' => 'select',
-    '#title' => t('Anonymous vote rollover'),
-    '#description' => t('The amount of time that must pass before two anonymous votes from the same computer are considered unique. Setting this to \'never\' will eliminate most double-voting, but will make it impossible for multiple anonymous on the same computer (like internet cafe customers) from casting votes.'),
-    '#default_value' => variable_get('votingapi_anonymous_window', 86400),
-    '#options' => $period
-  );
-
-  $form['votingapi_calculation_schedule'] = array(
-    '#type' => 'radios',
-    '#title' => t('Vote tallying'),
-    '#description' => t('On high-traffic sites, administrators can use this setting to postpone the calculation of vote results.'),
-    '#default_value' => variable_get('votingapi_calculation_schedule', 'immediate'),
-    '#options' => array(
-      'immediate' => t('Tally results whenever a vote is cast'),
-      'cron' => t('Tally results at cron-time'),
-      'manual' => t('Do not tally results automatically: I am using a module that manages its own vote results.')
-    ),
-  );
-
-  return system_settings_form($form);
-}
-
-
 
 /**
  * Cast a vote on a particular piece of content.
