@@ -56,10 +56,11 @@ function votingapi_views_data() {
       'handler' => 'votingapi_views_handler_field_value',
       'click sortable' => TRUE,
      ),
-     'filter' => array(
-       'handler' => 'views_handler_filter_numeric',
-       'label' => t('Value'),
-       ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+      'allow empty' => TRUE,
+      'label' => t('Value'),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
@@ -119,6 +120,16 @@ function votingapi_views_data() {
     ),
   );
 
+  // uid
+  $data['votingapi_vote']['current_uid'] = array(
+    'title' => t('Current user'), // The item it appears as on the UI,
+    'help' => t('Restrict votes to those cast by the current user.'), // The help that appears on the UI,
+    'real field' => 'uid',
+    'filter' => array(
+      'handler' => 'views_handler_filter_user_current',
+      'label' => t('Value type'),
+    ),
+  );
 
   // vote_source
   $data['votingapi_vote']['vote_source'] = array(

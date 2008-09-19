@@ -37,6 +37,9 @@ class votingapi_views_handler_relationship extends views_handler_relationship {
     if ($this->definition['base'] == 'votingapi_cache') {
       $options['votingapi']['function'] = array('default' => NULL);
     }
+    elseif ($this->definition['base'] == 'votingapi_vote') {
+      $options['current_user'] = array('default' => FALSE);
+    }
 
     return $options;
   }
@@ -77,7 +80,12 @@ class votingapi_views_handler_relationship extends views_handler_relationship {
       );
     }
     else {
-
+      $form['current_user'] = array(
+        '#title' => t('Restrict to current user'),
+        '#type' => 'checkbox',
+        '#return_value' => TRUE,
+        '#default_value' => $this->options['current_user'],
+      );
     }
   }
 
@@ -118,6 +126,15 @@ class votingapi_views_handler_relationship extends views_handler_relationship {
           $alias .= '_'. $value;
         }
       }
+    }
+
+    if (!empty($this->options['current_user'])) {
+      $def['extra'][] = array(
+        'field' => 'uid',
+        'value' => '***CURRENT_USER***',
+        'numeric' => FALSE
+      );
+      $alias .= '_curuser';
     }
 
     $join->definition = $def;
