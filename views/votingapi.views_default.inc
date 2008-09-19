@@ -44,15 +44,6 @@ function votingapi_views_default_views() {
       'relationship' => 'none',
     ),
   ));
-  $handler->override_option('sorts', array(
-    'value' => array(
-      'order' => 'DESC',
-      'id' => 'value',
-      'table' => 'votingapi_cache',
-      'field' => 'value',
-      'relationship' => 'votingapi_cache',
-    ),
-  ));
   $handler->override_option('filters', array(
     'status' => array(
       'operator' => '=',
@@ -168,6 +159,15 @@ function votingapi_views_default_views() {
       'relationship' => 'votingapi_cache',
     ),
   ));
+  $handler->override_option('sorts', array(
+    'value' => array(
+      'order' => 'DESC',
+      'id' => 'value',
+      'table' => 'votingapi_cache',
+      'field' => 'value',
+      'relationship' => 'votingapi_cache',
+    ),
+  ));
   $handler->override_option('header', 'This page is a demonstration of VotingAPI\'s integration with the Views module. It\'s set up to display nodes sorted by percentage ratings, the style used by Fivestar module.');
   $handler->override_option('header_format', '1');
   $handler->override_option('header_empty', 0);
@@ -280,6 +280,18 @@ function votingapi_views_default_views() {
       'relationship' => 'votingapi_cache',
     ),
   ));
+  $handler->override_option('sorts', array(
+    'value' => array(
+      'order' => 'DESC',
+      'id' => 'value',
+      'table' => 'votingapi_cache',
+      'field' => 'value',
+      'override' => array(
+        'button' => 'Use default',
+      ),
+      'relationship' => 'votingapi_cache',
+    ),
+  ));
   $handler->override_option('header', 'This page is a demonstration of VotingAPI\'s integration with the Views module. It\'s set up to display nodes sorted by point ratings, the style used by the Plus1 and VoteUpDown modules.');
   $handler->override_option('header_format', '1');
   $handler->override_option('header_empty', 0);
@@ -325,6 +337,171 @@ function votingapi_views_default_views() {
     'title' => '',
     'weight' => 0,
   ));
+  $handler = $view->new_display('page', 'Current user', 'page_3');
+  $handler->override_option('relationships', array(
+    'votingapi_vote' => array(
+      'label' => 'Votes',
+      'required' => 0,
+      'votingapi' => array(
+        'value_type' => '',
+        'tag' => 'vote',
+      ),
+      'current_user' => TRUE,
+      'id' => 'votingapi_vote',
+      'table' => 'node',
+      'field' => 'votingapi_vote',
+      'override' => array(
+        'button' => 'Override',
+      ),
+      'relationship' => 'none',
+    ),
+  ));
+  $handler->override_option('fields', array(
+    'title' => array(
+      'label' => 'Title',
+      'link_to_node' => 1,
+      'exclude' => 0,
+      'id' => 'title',
+      'table' => 'node',
+      'field' => 'title',
+      'relationship' => 'none',
+    ),
+    'value_type' => array(
+      'label' => 'Vote type',
+      'exclude' => 0,
+      'id' => 'value_type',
+      'table' => 'votingapi_vote',
+      'field' => 'value_type',
+      'override' => array(
+        'button' => 'Override',
+      ),
+      'relationship' => 'votingapi_vote',
+    ),
+    'value' => array(
+      'label' => 'Value',
+      'set_precision' => FALSE,
+      'precision' => 0,
+      'decimal' => '.',
+      'separator' => ',',
+      'prefix' => '',
+      'suffix' => '',
+      'appearance' => '',
+      'exclude' => 0,
+      'id' => 'value',
+      'table' => 'votingapi_vote',
+      'field' => 'value',
+      'override' => array(
+        'button' => 'Override',
+      ),
+      'relationship' => 'votingapi_vote',
+    ),
+    'timestamp' => array(
+      'label' => 'Timestamp',
+      'date_format' => 'time ago',
+      'custom_date_format' => '1',
+      'exclude' => 0,
+      'id' => 'timestamp',
+      'table' => 'votingapi_vote',
+      'field' => 'timestamp',
+      'override' => array(
+        'button' => 'Use default',
+      ),
+      'relationship' => 'votingapi_vote',
+    ),
+  ));
+  $handler->override_option('sorts', array(
+    'timestamp' => array(
+      'order' => 'DESC',
+      'id' => 'timestamp',
+      'table' => 'votingapi_vote',
+      'field' => 'timestamp',
+      'override' => array(
+        'button' => 'Use default',
+      ),
+      'relationship' => 'votingapi_vote',
+    ),
+  ));
+  $handler->override_option('filters', array(
+    'status' => array(
+      'operator' => '=',
+      'value' => 1,
+      'group' => '0',
+      'exposed' => FALSE,
+      'expose' => array(
+        'operator' => FALSE,
+        'label' => '',
+      ),
+      'id' => 'status',
+      'table' => 'node',
+      'field' => 'status',
+      'relationship' => 'none',
+    ),
+    'value' => array(
+      'operator' => 'not empty',
+      'value' => array(
+        'value' => '',
+        'min' => '',
+        'max' => '',
+      ),
+      'group' => '0',
+      'exposed' => FALSE,
+      'expose' => array(
+        'operator' => FALSE,
+        'label' => '',
+      ),
+      'id' => 'value',
+      'table' => 'votingapi_vote',
+      'field' => 'value',
+      'override' => array(
+        'button' => 'Use default',
+      ),
+      'relationship' => 'votingapi_vote',
+    ),
+  ));
+  $handler->override_option('title', 'Your votes');
+  $handler->override_option('style_options', array(
+    'grouping' => '',
+    'override' => 1,
+    'sticky' => 1,
+    'order' => 'desc',
+    'columns' => array(
+      'title' => 'title',
+      'value_type' => 'value_type',
+      'value' => 'value',
+      'timestamp' => 'timestamp',
+    ),
+    'info' => array(
+      'title' => array(
+        'sortable' => 1,
+        'separator' => '',
+      ),
+      'value_type' => array(
+        'sortable' => 1,
+        'separator' => '',
+      ),
+      'value' => array(
+        'sortable' => 1,
+        'separator' => '',
+      ),
+      'timestamp' => array(
+        'sortable' => 1,
+        'separator' => '',
+      ),
+    ),
+    'default' => 'timestamp',
+  ));
+  $handler->override_option('path', 'your-votes');
+  $handler->override_option('menu', array(
+    'type' => 'normal',
+    'title' => 'Your votes',
+    'weight' => '0',
+  ));
+  $handler->override_option('tab_options', array(
+    'type' => 'none',
+    'title' => '',
+    'weight' => 0,
+  ));
+
 
   $views[$view->name] = $view;
   return $views;
