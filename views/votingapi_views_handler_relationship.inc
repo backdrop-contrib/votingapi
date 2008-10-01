@@ -1,9 +1,9 @@
 <?php
-/* $Id$ */
+// $Id$
 
 /**
  * @file
- * Provide views handler for votingapi joins
+ * Provide views handler for votingapi joins.
  */
 
 /**

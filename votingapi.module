@@ -1,5 +1,5 @@
 <?php
-/* $Id$ */
+// $Id$
 
 /**
  * @file
@@ -12,7 +12,7 @@
  */
 
 /**
- * Implementation of hook_menu.
+ * Implementation of hook_menu().
  */
 function votingapi_menu() {
   $items = array();
@@ -42,14 +42,14 @@ function votingapi_menu() {
 }
 
 /**
- * Implementation of hook_perm.
+ * Implementation of hook_perm().
  */
 function votingapi_perm() {
   return array('administer voting api');
 }
 
 /**
- * Implementation of hook_views_api.
+ * Implementation of hook_views_api().
  */
 function votingapi_views_api() {
   return array(
@@ -59,8 +59,9 @@ function votingapi_views_api() {
 }
 
 /**
- * Implementation of hook_cron. Allows db-intensive recalculations to be
- * deferred until cron-time.
+ * Implementation of hook_cron().
+ *
+ * Allows db-intensive recalculations to be deferred until cron-time.
  */
 function votingapi_cron() {
   if (variable_get('votingapi_calculation_schedule', 'immediate') == 'cron') {
@@ -130,7 +131,7 @@ function votingapi_set_votes(&$votes, $criteria = NULL) {
   if (!isset($criteria)) {
     // If the calling function didn't explicitly set criteria for vote deletion,
     // build up the delete queries here.
-    foreach($votes as $vote) {
+    foreach ($votes as $vote) {
       $tmp = votingapi_current_user_identifier();
       $tmp += $vote;
       votingapi_delete_votes(votingapi_select_votes($tmp));
@@ -141,12 +142,12 @@ function votingapi_set_votes(&$votes, $criteria = NULL) {
     if (!empty($criteria['content_id'])) {
       $criteria = array($criteria);
     }
-    foreach($criteria as $c) {
+    foreach ($criteria as $c) {
       votingapi_delete_votes(votingapi_select_votes($c));
     }
   }
 
-  foreach($votes as $key => $vote) {
+  foreach ($votes as $key => $vote) {
     _votingapi_prep_vote($vote);
     $votes[$key] = $vote; // Is this needed? Check to see how PHP4 handles refs.
   }
@@ -154,12 +155,12 @@ function votingapi_set_votes(&$votes, $criteria = NULL) {
   // Cast the actual votes, inserting them into the table.
   votingapi_add_votes($votes);
 
-  foreach($votes as $vote) {
+  foreach ($votes as $vote) {
     $touched[$vote['content_type']][$vote['content_id']] = TRUE;
   }
 
   if (variable_get('votingapi_calculation_schedule', 'immediate') != 'cron') {
-    foreach($touched as $type => $ids) {
+    foreach ($touched as $type => $ids) {
       foreach ($ids as $id => $bool) {
         $touched[$type][$id] = votingapi_recalculate_results($type, $id);
       }
@@ -264,7 +265,7 @@ function votingapi_delete_votes($votes = array()) {
     foreach ($votes as $vote) {
       $vids[] = $vote['vote_id'];
     }
-    db_query("DELETE FROM {votingapi_vote} WHERE vote_id IN (". implode(',', array_fill(0, count($vids), '%d')) .")", $vids);
+    db_query("DELETE FROM {votingapi_vote} WHERE vote_id IN (". db_placeholders($vids) .")", $vids);
   }
 }
 
@@ -281,7 +282,7 @@ function votingapi_delete_results($vote_results = array()) {
     foreach ($vote_results as $vote) {
       $vids[] = $vote['vote_cache_id'];
     }
-    db_query("DELETE FROM {votingapi_cache} WHERE vote_cache_id IN (". implode(',', array_fill(0, count($vids), '%d')) .")", $vids);
+    db_query("DELETE FROM {votingapi_cache} WHERE vote_cache_id IN (". db_placeholders($vids) .")", $vids);
   }
 }
 
@@ -521,9 +522,11 @@ function _votingapi_query($table = 'vote', $criteria = array(), $alias = 'v.') {
   $args = array();
   if (!empty($criteria['vote_id'])) {
     _votingapi_query_builder($alias . 'vote_id', $criteria['vote_id'], $query, $args);
-  } elseif (!empty($criteria['vote_cache_id'])) {
+  }
+  elseif (!empty($criteria['vote_cache_id'])) {
     _votingapi_query_builder($alias . 'vote_cache_id', $criteria['vote_cache_id'], $query, $args);
-  } else {
+  }
+  else {
     _votingapi_query_builder($alias . 'content_type', $criteria['content_type'], $query, $args, TRUE);
     _votingapi_query_builder($alias . 'content_id', $criteria['content_id'], $query, $args);
     _votingapi_query_builder($alias . 'value_type', $criteria['value_type'], $query, $args, TRUE);
@@ -562,7 +565,8 @@ function _votingapi_query_builder($name, $value, &$query, &$args, $col_is_string
         $query .= " AND $name IN (". array_fill(1, count($value), "%d") .")";
         $args += $value;
       }
-    } else {
+    }
+    else {
       if ($col_is_string) {
         $query .= " AND $name = '%s'";
         $args[] = $value;

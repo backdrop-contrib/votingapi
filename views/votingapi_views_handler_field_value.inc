@@ -1,9 +1,9 @@
 <?php
-/* $Id$ */
+// $Id$
 
 /**
  * @file
- * Provide a views handlers for votingapi data fields
+ * Provide a views handlers for votingapi data fields.
  */
 
 class votingapi_views_handler_field_value extends views_handler_field_numeric {

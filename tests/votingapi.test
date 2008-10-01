@@ -1,4 +1,11 @@
 <?php
+// $Id$
+
+/**
+ * @file
+ * Test file for VotingAPI module.
+ */
+
 class VotingapiTestCase extends DrupalWebTestCase {
   /**
    * Implementation of getInfo().
@@ -9,7 +16,7 @@ class VotingapiTestCase extends DrupalWebTestCase {
       'desc' => t('Voting API'),
       'group' => t('Voting API Tests'));
   }
-  
+
   function setUp() {
     parent::setUp('votingapi');
     // Create a new page
@@ -26,16 +33,16 @@ class VotingapiTestCase extends DrupalWebTestCase {
     $node->title = t('Node @id', array('@id' => $node->nid));
     node_save($node);
   }
-  
+
   function tearDown() {
-    $nid = variable_get('votingapi_nid1', null);
+    $nid = variable_get('votingapi_nid1', NULL);
     if ($nid) {
       node_delete($nid);
       variable_del('votingapi_nid1');
     }
     parent::tearDown();
   }
-  
+
   /**
    * Ensure that the optional fields are truly optional.
    */
@@ -59,14 +66,14 @@ class VotingapiTestCase extends DrupalWebTestCase {
       return;
     }
   }
-  
+
   /**
    * Add a vote and ensure that the vote was stored properly.
    */
   function testAddVote() {
     global $user;
     $value = '7';
-    $nid = variable_get('votingapi_nid1', null);
+    $nid = variable_get('votingapi_nid1', NULL);
     $vote = array('content_id' => $nid,
       'value' => $value,
       'content_type' => 'node');
@@ -84,7 +91,7 @@ class VotingapiTestCase extends DrupalWebTestCase {
     $vote_results = votingapi_recalculate_results('node', $nid);
     $this->validateVoteCounts('testAddVote()', $vote_results, $nid, array($value));
   }
-  
+
   /**
    * Add multiple votes and ensure that the vote calculations are working.
    */
@@ -93,7 +100,7 @@ class VotingapiTestCase extends DrupalWebTestCase {
     $users[] = $this->drupalCreateUser();
     $users[] = $this->drupalCreateUser();
     $users[] = $this->drupalCreateUser();
-    $nid = variable_get('votingapi_nid1', null);
+    $nid = variable_get('votingapi_nid1', NULL);
     $values = array(72, 13, 27);
     $votes = array();
     try {
@@ -110,7 +117,7 @@ class VotingapiTestCase extends DrupalWebTestCase {
     }
     catch (Exception $e) {
       $this->fail('The votingapi_add_votes threw an error during the "votingapi_add_votes" call.');
-       return;
+      return;
     }
     // Load the vote back in and verify it matches.
     $vote_results = votingapi_recalculate_results('node', $nid);
@@ -136,7 +143,7 @@ class VotingapiTestCase extends DrupalWebTestCase {
       }
     }
   }
-  
+
   function validateVoteCounts($prefix, $votes, $content_id, $values, $content_type = 'node',
     $value_type = 'percent', $tag = 'vote') {
       $count_summary = 0;
@@ -165,7 +172,7 @@ class VotingapiTestCase extends DrupalWebTestCase {
         else {
           $prefix_array['@summary'] = $summary['function'];
           $prefix_array['@summary_desc'] = $summary['function'] . ' summary';
-          $this->assertFalse(true, t('@prefix: Unknown summary type @summary.', $prefix_array));
+          $this->assertFalse(TRUE, t('@prefix: Unknown summary type @summary.', $prefix_array));
         }
         $this->assertTrue($summary['content_type'] == $content_type,
           t('@prefix: (@summary_desc) content_type should match, default = "node"', $prefix_array));

@@ -1,6 +1,10 @@
 <?php
-
 // $Id$
+
+/**
+ * @file
+ * Installation file for VotingAPI module.
+ */
 
 function votingapi_schema() {
   $schema['votingapi_vote'] = array(
@@ -198,11 +202,11 @@ function votingapi_update_6() {
 function votingapi_update_7() {
   // There are quite a few changes. Let's just take the easy way and nuke this puppy.
   // Nothing has been using the tables up to this point, anyhow.
-  
+
   $ret[] = update_sql("DROP TABLE {votingapi_action_set}");
   $ret[] = update_sql("DROP TABLE {votingapi_action_condition}");
   $ret[] = update_sql("DROP TABLE {votingapi_action}");
-  
+
   $ret[] = update_sql("CREATE TABLE {votingapi_action_set} (
       name varchar(64) NOT NULL,
       parent_name varchar(64) default NULL,
@@ -229,7 +233,7 @@ function votingapi_update_7() {
       parent_name varchar(64) NOT NULL,
       aid varchar(255) NOT NULL
     ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-    
+
   return $ret;
 }
 

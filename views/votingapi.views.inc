@@ -1,21 +1,20 @@
 <?php
-
-/* $Id$ */
+// $Id$
 
 /**
  * @file
- * Provide views data for votingapi.module
+ * Provide views data for votingapi.module.
  */
 
 /**
- * @defgroup views_votingapi_module votingapi.module handlers
+ * @defgroup views_votingapi_module votingapi.module handlers.
  *
  * @{
  */
 
 
 /**
- * Implementation of hook_views_handlers()
+ * Implementation of hook_views_handlers().
  */
 function votingapi_views_handlers() {
   return array(
@@ -34,7 +33,7 @@ function votingapi_views_handlers() {
 
 
 /**
- * Implementation of hook_views_data()
+ * Implementation of hook_views_data().
  */
 function votingapi_views_data() {
   // Basic table information.
@@ -55,7 +54,7 @@ function votingapi_views_data() {
     'field' => array(
       'handler' => 'votingapi_views_handler_field_value',
       'click sortable' => TRUE,
-     ),
+    ),
     'filter' => array(
       'handler' => 'views_handler_filter_numeric',
       'allow empty' => TRUE,
@@ -74,11 +73,11 @@ function votingapi_views_data() {
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
-     ),
-     'filter' => array(
-       'handler' => 'views_handler_filter_string',
-       'label' => t('Value type'),
-       ),
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+      'label' => t('Value type'),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
@@ -139,11 +138,11 @@ function votingapi_views_data() {
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
-     ),
-     'filter' => array(
-       'handler' => 'views_handler_filter_string',
-       'label' => t('Value type'),
-       ),
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+      'label' => t('Value type'),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
@@ -158,11 +157,11 @@ function votingapi_views_data() {
     'field' => array(
       'handler' => 'views_handler_field_date',
       'click sortable' => TRUE,
-     ),
-     'filter' => array(
-       'handler' => 'views_handler_filter_date',
-       'label' => t('Value type'),
-       ),
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_date',
+      'label' => t('Value type'),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
@@ -179,11 +178,11 @@ function votingapi_views_data() {
     'field' => array(
       'handler' => 'votingapi_views_handler_field_value',
       'click sortable' => TRUE,
-     ),
-     'filter' => array(
-       'handler' => 'views_handler_filter_numeric',
-       'label' => t('Value'),
-       ),
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+      'label' => t('Value'),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
@@ -197,11 +196,11 @@ function votingapi_views_data() {
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
-     ),
-     'filter' => array(
-       'handler' => 'views_handler_filter_string',
-       'label' => t('Value type'),
-       ),
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+      'label' => t('Value type'),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
@@ -215,11 +214,11 @@ function votingapi_views_data() {
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
-     ),
-     'filter' => array(
-       'handler' => 'views_handler_filter_string',
-       'label' => t('Value type'),
-       ),
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+      'label' => t('Value type'),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
@@ -234,11 +233,11 @@ function votingapi_views_data() {
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
-     ),
-     'filter' => array(
-       'handler' => 'views_handler_filter_string',
-       'label' => t('Value type'),
-       ),
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+      'label' => t('Value type'),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
@@ -253,11 +252,11 @@ function votingapi_views_data() {
     'field' => array(
       'handler' => 'views_handler_field_date',
       'click sortable' => TRUE,
-     ),
-     'filter' => array(
-       'handler' => 'views_handler_filter_date',
-       'label' => t('Value type'),
-       ),
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_date',
+      'label' => t('Value type'),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
@@ -324,7 +323,7 @@ function votingapi_views_data_alter(&$views_data) {
   $default_relationships = module_invoke_all('votingapi_views_content_types');
   $default_relationships += array('node' => array('content_table' => 'node', 'content_id_column' => 'nid'));
 
-  foreach($default_relationships as $content_type => $data) {
+  foreach ($default_relationships as $content_type => $data) {
     $views_data[$data['content_table']]['votingapi_vote']['relationship'] = array(
       'title' => 'Individual votes',
       'help' => "Votes cast by users on $content_type content.",

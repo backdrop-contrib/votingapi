@@ -1,6 +1,11 @@
 <?php
 // $Id$
 
+/**
+ * @file
+ * Provide default views data for votingapi.module.
+ */
+
 function votingapi_views_default_views() {
   $views = array();
 

@@ -2,6 +2,11 @@
 // $Id$
 
 /**
+ * @file
+ * Configuration forms and helper functions for VotingAPI module.
+ */
+
+/**
  * Administrative settings for VotingAPI.
  */
 function votingapi_settings_form($form_state) {
@@ -72,7 +77,7 @@ function votingapi_generate_votes_form() {
 /**
  * Submit handler for votingapi_generate_votes_form.
  */
-function votingapi_generate_votes_form_submit($form_id, &$form_state) {
+function votingapi_generate_votes_form_submit($form, &$form_state) {
   votingapi_generate_votes($form_state['values']['node_types'], $form_state['values']['vote_type'], $form_state['values']['kill_votes']);
 }
 
@@ -91,7 +96,7 @@ function votingapi_generate_votes($node_types, $vote_type, $kill_votes = FALSE) 
   $nids = array();
   
   $sql  = "SELECT n.nid, n.created FROM {node} n ";
-  $sql .= "WHERE n.type IN (". join(', ', array_fill(1, count($node_types), "'%s'")) . ") ";
+  $sql .= "WHERE n.type IN (". db_placeholders($node_types, 'varchar') . ") ";
   $sql .= "ORDER BY n.created DESC";
   
   $results = db_query($sql, $node_types);
