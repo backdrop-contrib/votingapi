@@ -58,7 +58,6 @@ function votingapi_views_data() {
     'filter' => array(
       'handler' => 'views_handler_filter_numeric',
       'allow empty' => TRUE,
-      'label' => t('Value'),
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -76,7 +75,6 @@ function votingapi_views_data() {
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_string',
-      'label' => t('Value type'),
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -94,7 +92,6 @@ function votingapi_views_data() {
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_string',
-      'label' => t('Value type'),
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -112,10 +109,12 @@ function votingapi_views_data() {
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_user_name',
-      'label' => t('Value type'),
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_user_uid',
     ),
   );
 
@@ -126,7 +125,6 @@ function votingapi_views_data() {
     'real field' => 'uid',
     'filter' => array(
       'handler' => 'views_handler_filter_user_current',
-      'label' => t('Value type'),
     ),
   );
 
@@ -141,7 +139,6 @@ function votingapi_views_data() {
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_string',
-      'label' => t('Value type'),
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -160,7 +157,6 @@ function votingapi_views_data() {
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_date',
-      'label' => t('Value type'),
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -181,7 +177,6 @@ function votingapi_views_data() {
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_numeric',
-      'label' => t('Value'),
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -199,7 +194,6 @@ function votingapi_views_data() {
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_string',
-      'label' => t('Value type'),
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -217,7 +211,6 @@ function votingapi_views_data() {
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_string',
-      'label' => t('Value type'),
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -236,7 +229,6 @@ function votingapi_views_data() {
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_string',
-      'label' => t('Value type'),
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -255,7 +247,6 @@ function votingapi_views_data() {
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_date',
-      'label' => t('Value type'),
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -321,7 +312,17 @@ function votingapi_views_data_alter(&$views_data) {
   // available to Views.
 
   $default_relationships = module_invoke_all('votingapi_views_content_types');
-  $default_relationships += array('node' => array('content_table' => 'node', 'content_id_column' => 'nid'));
+  $default_relationships += array(
+    'node' => array('content_table' => 'node', 'content_id_column' => 'nid'),
+  );
+  
+  // If votes have been cast with the content_type 'translation set', we will
+  // assume that conent_id is a translation_set's base nid, and we should join
+  // based on the tnid rather than the nid. It's not perfect, but it's the best
+  // we can do.
+  if (module_exists('content_translation')) {
+    $default_relationships['translation_set'] = array('content_table' => 'node', 'content_id_column' => 'tnid');
+  }
 
   foreach ($default_relationships as $content_type => $data) {
     $views_data[$data['content_table']]['votingapi_vote']['relationship'] = array(
