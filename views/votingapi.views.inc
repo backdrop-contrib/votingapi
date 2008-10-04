@@ -311,23 +311,40 @@ function votingapi_views_data_alter(&$views_data) {
   // Add relationship handlers for both tables, for any base tables currently
   // available to Views.
 
-  $default_relationships = module_invoke_all('votingapi_views_content_types');
+  $default_relationships = module_invoke_all('votingapi_content_type_mapping');
   $default_relationships += array(
-    'node' => array('content_table' => 'node', 'content_id_column' => 'nid'),
+    'node' => array(
+      'description' => t('nodes'),
+      'content_type' => 'node',
+      'base_table' => 'node',
+      'content_id_column' => 'nid'
+    ),
   );
+  
+  // We'll add this special case for nodes, just in case.
+  if (module_exists('locale')) {
+    $default_relationships += array(
+      'translation_set' => array(
+        'description' => t('all nodes in a translation set'),
+        'content_type' => 'node',
+        'base_table' => 'node',
+        'content_id_column' => 'tnid'
+      ),
+    );
+  }
   
   // If votes have been cast with the content_type 'translation set', we will
   // assume that conent_id is a translation_set's base nid, and we should join
   // based on the tnid rather than the nid. It's not perfect, but it's the best
   // we can do.
-  if (module_exists('content_translation')) {
+  if (module_exists('locale')) {
     $default_relationships['translation_set'] = array('content_table' => 'node', 'content_id_column' => 'tnid');
   }
 
-  foreach ($default_relationships as $content_type => $data) {
-    $views_data[$data['content_table']]['votingapi_vote']['relationship'] = array(
+  foreach ($default_relationships as $key => $data) {
+    $views_data[$data['base_table']]['votingapi_vote']['relationship'] = array(
       'title' => 'Individual votes',
-      'help' => "Votes cast by users on $content_type content.",
+      'help' => 'Votes cast by users on ' . $data['description'] . '.',
       'base' => 'votingapi_vote',
       'field' => 'content_id',
       'relationship field' => $data['content_id_column'],
@@ -335,15 +352,15 @@ function votingapi_views_data_alter(&$views_data) {
       'extra' => array(
         array(
           'field' => 'content_type',
-          'value' => $content_type,
+          'value' => $data['content_type'],
           'numeric' => FALSE
         ),
       ),
     );
 
-    $views_data[$data['content_table']]['votingapi_cache']['relationship'] = array(
+    $views_data[$data['base_table']]['votingapi_cache']['relationship'] = array(
       'title' => 'Voting results',
-      'help' => "The aggregate results of votes cast on $content_type content.",
+      'help' => 'The aggregate results of votes cast on ' . $data['description'] . '.',
       'base' => 'votingapi_cache',
       'field' => 'content_id',
       'relationship field' => $data['content_id_column'],
@@ -351,7 +368,7 @@ function votingapi_views_data_alter(&$views_data) {
       'extra' => array(
         array(
           'field' => 'content_type',
-          'value' => $content_type,
+          'value' => $data['content_type'],
           'numeric' => FALSE
         ),
       ),
