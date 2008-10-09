@@ -27,7 +27,7 @@ function votingapi_menu() {
     'type' => MENU_NORMAL_ITEM
   );
 
-  if (module_exists('devel')) {
+  if (module_exists('devel_generate')) {
     $items['admin/generate/votingapi'] = array(
       'title' => 'Generate votes',
       'description' => 'Generate a given number of votes on site content. Optionally delete existing votes.',
@@ -558,12 +558,12 @@ function _votingapi_query_builder($name, $value, &$query, &$args, $col_is_string
   else {
     if (is_array($value)) {
       if ($col_is_string) {
-        $query .= " AND $name IN ('". array_fill(1, count($value), "'%s'") ."')";
-        $args += $value;
+        $query .= " AND $name IN (". db_placeholders($value, 'varchar') .")";
+        $args = array_merge($args, $value);
       }
       else {
-        $query .= " AND $name IN (". array_fill(1, count($value), "%d") .")";
-        $args += $value;
+        $query .= " AND $name IN (". db_placeholders($value, 'int') .")";
+        $args = array_merge($args, $value);
       }
     }
     else {

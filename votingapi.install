@@ -71,14 +71,10 @@ function votingapi_update_1() {
  */
 function votingapi_update_2() {
   $ret = array();
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql("ALTER TABLE {votingapi_cache} CHANGE value value float(10) default NULL");
-      $ret[] = update_sql("ALTER TABLE {votingapi_vote} CHANGE value value float(10) default NULL");
-      break;
-  }
-
+	db_drop_primary_key($ret, 'votingapi_cache');
+	db_drop_primary_key($ret, 'votingapi_vote');
+  db_change_field($ret, votingapi_cache, value, value, array('type' => 'float', 'default' => NULL), array('primary_key' => array('vote_cache_id')));
+  db_change_field($ret, votingapi_vote, value, value, array('type' => 'float', 'default' => NULL), array('primary_key' => array('vote_id')));
   return $ret;
 }
 
@@ -90,22 +86,13 @@ function votingapi_update_3() {
   switch ($GLOBALS['db_type']) {
     case 'mysql':
     case 'mysqli':
-      $ret[] = update_sql("ALTER TABLE {votingapi_cache} CHANGE value_type value_type varchar(20) NOT NULL");
-      $ret[] = update_sql("ALTER TABLE {votingapi_vote} CHANGE value_type value_type varchar(20) NOT NULL");
+      $ret[] = update_sql("UPDATE {votingapi_cache} SET value_type = 'percent' WHERE value_type = '1'");
+      $ret[] = update_sql("UPDATE {votingapi_cache} SET value_type = 'points' WHERE value_type = '2'");
+      $ret[] = update_sql("UPDATE {votingapi_cache} SET value_type = 'option' WHERE value_type = '3'");
 
-      $ret[] = update_sql("ALTER TABLE {votingapi_cache} ADD INDEX (content_type)");
-      $ret[] = update_sql("ALTER TABLE {votingapi_cache} ADD INDEX (content_id)");
-      $ret[] = update_sql("ALTER TABLE {votingapi_vote} ADD INDEX (content_type)");
-      $ret[] = update_sql("ALTER TABLE {votingapi_vote} ADD INDEX (content_id)");
-
-      $ret[] = db_query("UPDATE {votingapi_cache} SET value_type = 'percent' WHERE value_type = '1'");
-      $ret[] = db_query("UPDATE {votingapi_cache} SET value_type = 'points' WHERE value_type = '2'");
-      $ret[] = db_query("UPDATE {votingapi_cache} SET value_type = 'option' WHERE value_type = '3'");
-
-      $ret[] = db_query("UPDATE {votingapi_vote} SET value_type = 'percent' WHERE value_type = '1'");
-      $ret[] = db_query("UPDATE {votingapi_vote} SET value_type = 'points' WHERE value_type = '2'");
-      $ret[] = db_query("UPDATE {votingapi_vote} SET value_type = 'option' WHERE value_type = '3'");
-
+      $ret[] = update_sql("UPDATE {votingapi_vote} SET value_type = 'percent' WHERE value_type = '1'");
+      $ret[] = update_sql("UPDATE {votingapi_vote} SET value_type = 'points' WHERE value_type = '2'");
+      $ret[] = update_sql("UPDATE {votingapi_vote} SET value_type = 'option' WHERE value_type = '3'");
       break;
   }
 
@@ -118,38 +105,44 @@ function votingapi_update_3() {
 
 function votingapi_update_4() {
   $ret = array();
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql("CREATE TABLE {votingapi_action_set} (
-           vasid int(10) unsigned NOT NULL,
-           parent int(10) unsigned NOT NULL,
-           required int(8) NOT NULL default '0',
-           mask varchar(8) default 'AND',
-           content_type varchar(20) default NULL,
-           name varchar(128) default NULL,
-           enabled int default 1,
-           source varchar(65) default NULL,
-           weight int(10) NOT NULL default 0,
-           PRIMARY KEY  (vasid)
-         ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
+	$name = 'votingapi_action_set';
+	$table_action_step = array(
+		'fields' => array(
+			'vasid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+			'parent' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+			'required' => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
+			'mask' => array('type' => 'varchar', 'default' => 'AND'),
+			'content_type' => array('type' => 'varchar', 'length' => 20, 'default' => NULL),
+			'name' => array('type' => 'varchar', 'length' => 128, 'default' => NULL),
+			'enabled' => array('type' => 'int', 'default' => 1),
+			'source' => array('type' => 'varchar', 'length' => 65, 'default' => NULL),
+			'weight' => array('type' => 'int', 'length' => 10, 'not null' => TRUE, 'default' => 0),
+		),
+		'primary key' => array('vasid'),
+	);
+	db_create_table($ret, $name, $table_action_set);
 
-      $ret[] = update_sql("CREATE TABLE {votingapi_action_condition} (
-          vacid int(10) unsigned NOT NULL,
-          vasid int(10) unsigned NOT NULL,
-          weight int(10) NOT NULL default 0,
-          value varchar(255),
-          handler varchar(255) NOT NULL,
-          PRIMARY KEY  (vacid)
-        ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
+	$name = 'votingapi_action_condition';
+	$table_action_condition = array(
+		'fields' => array(
+			'vacid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+			'vasid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+			'weight' => array('type' => 'int', 'length' => 10, 'not null' => TRUE, 'default' => 0),
+			'value' => array('type' => 'varchar', 'length' => 255),
+			'handler' => array('type' => 'varchar', 'length' => 255),
+		),
+		'primary key' => array('vacid'),
+	);
+	db_create_table($ret, $name, $table_action_condition);
 
-      $ret[] = update_sql("CREATE TABLE {votingapi_action} (
-          vasid int(10) unsigned NOT NULL,
-          aid varchar(255) NOT NULL default '0'
-        ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
-
-      break;
-  }
+	$name = 'votingapi_action';
+	$table_votingapi_action = array(
+		'fields' => array(
+			'vasid' => array('type' => 'int', 'length' => 10, 'unsigned' => TRUE, 'not null' => TRUE),
+			'aid' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => 0),
+		),
+	);
+	db_create_table($ret, $name, $table_votingapi_action);
 
   return $ret;
 }
@@ -160,42 +153,36 @@ function votingapi_update_4() {
 
 function votingapi_update_5() {
   $ret = array();
-  switch ($GLOBALS['db_type']) {
+	db_add_index($ret, '{votingapi_vote}', 'content', array('content_type', 'content_id'));
+	db_add_index($ret, '{votingapi_cache}', 'content', array('content_type', 'content_id'));
+
+	db_drop_index($ret, '{votingapi_vote}', 'content_type');
+	db_drop_index($ret, '{votingapi_vote}', 'content_id');
+	db_drop_index($ret, '{votingapi_cache}', 'content_type');
+	db_drop_index($ret, '{votingapi_cache}', 'content_id');
+
+	db_rename_table($ret, 'votingapi_action_condition', '{votingapi_action_condition}');
+	db_rename_table($ret, 'votingapi_action', '{votingapi_action}');
+
+	switch ($GLOBALS['db_type']) {
     case 'mysql':
     case 'mysqli':
-      $ret[] = update_sql("ALTER TABLE {votingapi_vote} ADD INDEX content (content_type, content_id);");
-      $ret[] = update_sql("ALTER TABLE {votingapi_cache} ADD INDEX content (content_type, content_id);");
-
-      $ret[] = update_sql("ALTER TABLE {votingapi_vote} DROP INDEX content_type;");
-      $ret[] = update_sql("ALTER TABLE {votingapi_vote} DROP INDEX content_id;");
-      $ret[] = update_sql("ALTER TABLE {votingapi_cache} DROP INDEX content_type;");
-      $ret[] = update_sql("ALTER TABLE {votingapi_cache} DROP INDEX content_id;");
-
-      $ret[] = update_sql("RENAME TABLE votingapi_action_condition TO {votingapi_action_condition};");
-      $ret[] = update_sql("RENAME TABLE votingapi_action TO {votingapi_action};");
-
       $ret[] = update_sql("UPDATE {sequences} SET name = '{votingapi_cache}' WHERE name = 'votingapi_cache';");
       $ret[] = update_sql("UPDATE {sequences} SET name = '{votingapi_vote}' WHERE name = 'votingapi_vote';");
-
       break;
-  }
+	}
 
   return $ret;
 }
 
 function votingapi_update_6() {
   $ret = array();
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql("ALTER TABLE {votingapi_action_condition} ADD COLUMN name varchar(128) NOT NULL;");
-      $ret[] = update_sql("ALTER TABLE {votingapi_action_condition} CHANGE value data varchar(255)");
-      $ret[] = update_sql("ALTER TABLE {votingapi_action_set} ADD COLUMN description varchar(255) NOT NULL;");
-      break;
-  }
+
+  db_add_column($ret, 'votingapi_action_condition', 'name', 'varchar', array('length' => 128));
+  db_add_column($ret, 'votingapi_action_set', 'name', 'description', array('length' => 255, 'not null' => TRUE));
+  db_change_column($ret, 'votingapi_action_condition', 'value', 'data', 'varchar', array('length' => 255));
 
   return $ret;
-
 }
 
 
@@ -203,36 +190,47 @@ function votingapi_update_7() {
   // There are quite a few changes. Let's just take the easy way and nuke this puppy.
   // Nothing has been using the tables up to this point, anyhow.
 
-  $ret[] = update_sql("DROP TABLE {votingapi_action_set}");
-  $ret[] = update_sql("DROP TABLE {votingapi_action_condition}");
-  $ret[] = update_sql("DROP TABLE {votingapi_action}");
+  db_drop_table($ret, 'votingapi_action_set');
+  db_drop_table($ret, 'votingapi_action_condition');
+  db_drop_table($ret, 'votingapi_action');
 
-  $ret[] = update_sql("CREATE TABLE {votingapi_action_set} (
-      name varchar(64) NOT NULL,
-      parent_name varchar(64) default NULL,
-      content_type varchar(20) default NULL,
-      source varchar(64) default NULL,
-      description varchar(255) default NULL,
-      required int(8) NOT NULL default '0',
-      criteria_mask varchar(8) default 'AND',
-      weight int(10) NOT NULL default 0,
-      PRIMARY KEY  (name)
-    ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+  $name = 'votingapi_action_set';
+  $table_votingapi_action_set = array(
+    'fields' => array(
+      'name' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE),
+      'parent_name' => array('type' => 'varchar', 'default' => NULL),
+      'content_type' => array('type' => 'varchar', 'length' => 20, 'default' => NULL),
+      'source' => array('type' => 'varchar', 'length' => 64, 'default' => NULL),
+      'description' => array('type' => 'varchar', 'length' => 255, 'default' => NULL),
+      'required' => array('type' => 'int', 'length' => 8, 'not null' => TRUE, 'default' => 0),
+      'criteria_mask' => array('type' => 'varchar', 'length' => 8, 'default' => 'AND'),
+      'weight' => array('type' => 'int', 'length' => 10, 'not null' => TRUE, 'default' => 0),
+    ),
+    'primary_key' => array('name'),
+  );
+  db_create_table($ret, $name, $table_votingapi_action_set);
 
-  $ret[] = update_sql("CREATE TABLE {votingapi_action_condition} (
-      name varchar(64) NOT NULL,
-      parent_name varchar(64) default NULL,
-      description varchar(255) default NULL,
-      weight int(10) NOT NULL default 0,
-      data varchar(255),
-      handler varchar(255) NOT NULL,
-      PRIMARY KEY  (name)
-    ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+  $name = 'votingapi_action_condition';
+  $table_votingapi_action_condition = array(
+    'fields'=> array(
+      'name' => array('type' => 'varchar', 'length' => 64, 'length' => 64),
+      'parent_name' => array('type' => 'varchar', 'default' => NULL),
+      'description' => array('type' => 'varchar', 'length' => 255, 'default' => NULL),
+      'data' => array('type' => 'varchar', 'length' => 255),
+      'handler' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+    ),
+    'primary key' => array('name'),
+  );
+  db_create_table($ret, $name, $table_votingapi_action_condition);
 
-  $ret[] = update_sql("CREATE TABLE {votingapi_action} (
-      parent_name varchar(64) NOT NULL,
-      aid varchar(255) NOT NULL
-    ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+  $name = 'votingapi_action';
+  $table_votingapi_action = array(
+    'fields' => array(
+      'parent_name' => array('type' => 'varchar', 'length' => 64, 'length' => 64),
+      'aid' => array('type' => 'varchar', 'length' => 255, 'not null' => 255),
+    ),
+  );
+  db_create_table($ret, $name, $table_votingapi_action);
 
   return $ret;
 }
@@ -240,21 +238,15 @@ function votingapi_update_7() {
 function votingapi_update_8() {
   // whoops. mis-named column.
   $ret = array();
-  $ret[] = update_sql("ALTER TABLE {votingapi_action_set} CHANGE criteria_mask condition_mask varchar(8) DEFAULT 'AND';");
+  db_change_column($ret, 'votingapi_action_set', 'criteria_mask', 'condition_mask', 'varchar', array('length' => 8, 'default' => 'AND'));
   return $ret;
 }
 
 function votingapi_update_9() {
   $ret = array();
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-        $ret[] = update_sql("ALTER TABLE {votingapi_cache} ADD COLUMN timestamp int(11) default NULL;");
-      break;
-    case 'pgsql':
-        $ret[] = update_sql("ALTER TABLE {votingapi_cache} ADD COLUMN timestamp int4 default NULL;");
-      break;
-  }
+
+  db_add_column($ret, 'votingapi_cache', 'timestamp', 'int', array('length' => 11, 'default' => NULL));
+
   $ret[] = update_sql("UPDATE {votingapi_cache} SET timestamp = " . time() . " WHERE timestamp IS NULL;");
   return $ret;
 }

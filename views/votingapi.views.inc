@@ -311,7 +311,7 @@ function votingapi_views_data_alter(&$views_data) {
   // Add relationship handlers for both tables, for any base tables currently
   // available to Views.
 
-  $default_relationships = module_invoke_all('votingapi_content_type_mapping');
+  $default_relationships = module_invoke_all('votingapi_views_relationships');
   $default_relationships += array(
     'node' => array(
       'description' => t('nodes'),
@@ -320,18 +320,6 @@ function votingapi_views_data_alter(&$views_data) {
       'content_id_column' => 'nid'
     ),
   );
-  
-  // We'll add this special case for nodes, just in case.
-  if (module_exists('locale')) {
-    $default_relationships += array(
-      'translation_set' => array(
-        'description' => t('all nodes in a translation set'),
-        'content_type' => 'node',
-        'base_table' => 'node',
-        'content_id_column' => 'tnid'
-      ),
-    );
-  }
   
   // If votes have been cast with the content_type 'translation set', we will
   // assume that conent_id is a translation_set's base nid, and we should join
