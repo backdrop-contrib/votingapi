@@ -356,3 +356,36 @@ function votingapi_views_data_alter(&$views_data) {
   }
 }
 
+
+/**
+ * Implementation of hook_views_analyze().
+ *
+ * Warns admins if a VotingAPI relationship has been defined, but filters on the
+ * relationship haven't been set.
+ */
+function votingapi_views_analyze($view) {
+  $ret = array();
+  // Check for something other than the default display:
+  foreach ($view->display as $id => $display) {
+    if (!$display->handler->is_defaulted('access') || !$display->handler->is_defaulted('filters')) {
+      $relationships = $display->handler->get_option('relationships');
+      foreach ($relationships as $relationship) {
+        if ($relationship['field'] == 'votingapi_vote') {
+          if (empty($relationship['votingapi']['value_type']) ||
+              empty($relationship['votingapi']['tag'])) {
+            $ret[] = views_ui_analysis(t('Display %display defines a VotingAPI vote relationship, but does not restrict the relationship data. This may result in duplicate entries in the resulting view.', array('%display' => $display->display_title)), 'warning');
+          }
+        }
+        elseif ($relationship['field'] == 'votingapi_cache') {
+          if (empty($relationship['votingapi']['value_type']) ||
+              empty($relationship['votingapi']['tag']) ||
+              empty($relationship['votingapi']['function'])) {
+            $ret[] = views_ui_analysis(t('Display %display defines a VotingAPI results relationship, but does not restrict the relationship data. This may result in duplicate entries in the resulting view.', array('%display' => $display->display_title)), 'warning');
+          }
+        }
+      }
+    }
+  }
+
+  return $ret;
+}
