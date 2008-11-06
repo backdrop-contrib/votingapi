@@ -322,7 +322,8 @@ function votingapi_views_data_alter(&$views_data) {
   );
 
   foreach ($default_relationships as $key => $data) {
-    $views_data[$data['base_table']]['votingapi_vote']['relationship'] = array(
+    $pseudo = str_replace(array(' ','-','.'), '_', $data['content_type'] . '_' . $data['content_id_column']);
+    $views_data[$data['base_table']]['vapi_'. $pseudo]['relationship'] = array(
       'title' => 'Individual votes',
       'help' => 'Votes cast by users on ' . $data['description'] . '.',
       'base' => 'votingapi_vote',
@@ -338,7 +339,7 @@ function votingapi_views_data_alter(&$views_data) {
       ),
     );
 
-    $views_data[$data['base_table']]['votingapi_cache']['relationship'] = array(
+    $views_data[$data['base_table']]['vapic_' . $pseudo]['relationship'] = array(
       'title' => 'Voting results',
       'help' => 'The aggregate results of votes cast on ' . $data['description'] . '.',
       'base' => 'votingapi_cache',
@@ -354,6 +355,11 @@ function votingapi_views_data_alter(&$views_data) {
       ),
     );
   }
+}
+
+
+function _votingapi_views_sql_safe_content_type($string) {
+  return str_replace(array(' ','-','.'), '_', $string);
 }
 
 

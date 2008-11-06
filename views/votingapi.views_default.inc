@@ -17,7 +17,7 @@ function votingapi_views_default_views() {
   $view->base_table = 'node';
   $view->is_cacheable = FALSE;
   $view->api_version = 2;
-  $view->disabled = TRUE;
+  $view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
   $handler = $view->new_display('default', 'Defaults', 'default');
   $handler->override_option('fields', array(
     'name' => array(
@@ -99,17 +99,17 @@ function votingapi_views_default_views() {
   ));
   $handler = $view->new_display('page', 'Fivestar', 'page_1');
   $handler->override_option('relationships', array(
-    'votingapi_cache' => array(
-      'label' => 'Average',
+    'vapic_node_nid' => array(
+      'label' => 'Voting results',
       'required' => 0,
       'votingapi' => array(
         'value_type' => 'percent',
         'tag' => 'vote',
         'function' => 'average',
       ),
-      'id' => 'votingapi_cache',
+      'id' => 'vapic_node_nid',
       'table' => 'node',
-      'field' => 'votingapi_cache',
+      'field' => 'vapic_node_nid',
       'override' => array(
         'button' => 'Use default',
       ),
@@ -161,7 +161,7 @@ function votingapi_views_default_views() {
       'override' => array(
         'button' => 'Use default',
       ),
-      'relationship' => 'votingapi_cache',
+      'relationship' => 'vapic_node_nid',
     ),
   ));
   $handler->override_option('sorts', array(
@@ -170,7 +170,10 @@ function votingapi_views_default_views() {
       'id' => 'value',
       'table' => 'votingapi_cache',
       'field' => 'value',
-      'relationship' => 'votingapi_cache',
+      'relationship' => 'vapic_node_nid',
+      'override' => array(
+        'button' => 'Use default',
+      ),
     ),
   ));
   $handler->override_option('header', 'This page is a demonstration of VotingAPI\'s integration with the Views module. It\'s set up to display nodes sorted by percentage ratings, the style used by Fivestar module.');
@@ -212,6 +215,7 @@ function votingapi_views_default_views() {
     'type' => 'normal',
     'title' => 'Top content (Fivestar)',
     'weight' => '0',
+    'name' => 'navigation',
   ));
   $handler->override_option('tab_options', array(
     'type' => 'none',
@@ -220,17 +224,17 @@ function votingapi_views_default_views() {
   ));
   $handler = $view->new_display('page', 'Plus1', 'page_2');
   $handler->override_option('relationships', array(
-    'votingapi_cache' => array(
-      'label' => 'Points total',
+    'vapic_node_nid' => array(
+      'label' => 'Voting results',
       'required' => 0,
       'votingapi' => array(
         'value_type' => 'points',
         'tag' => 'vote',
         'function' => 'sum',
       ),
-      'id' => 'votingapi_cache',
+      'id' => 'vapic_node_nid',
       'table' => 'node',
-      'field' => 'votingapi_cache',
+      'field' => 'vapic_node_nid',
       'override' => array(
         'button' => 'Use default',
       ),
@@ -282,7 +286,7 @@ function votingapi_views_default_views() {
       'override' => array(
         'button' => 'Use default',
       ),
-      'relationship' => 'votingapi_cache',
+      'relationship' => 'vapic_node_nid',
     ),
   ));
   $handler->override_option('sorts', array(
@@ -294,7 +298,7 @@ function votingapi_views_default_views() {
       'override' => array(
         'button' => 'Use default',
       ),
-      'relationship' => 'votingapi_cache',
+      'relationship' => 'vapic_node_nid',
     ),
   ));
   $handler->override_option('header', 'This page is a demonstration of VotingAPI\'s integration with the Views module. It\'s set up to display nodes sorted by point ratings, the style used by the Plus1 and VoteUpDown modules.');
@@ -336,6 +340,7 @@ function votingapi_views_default_views() {
     'type' => 'normal',
     'title' => 'Top content (Plus1)',
     'weight' => '0',
+    'name' => 'navigation',
   ));
   $handler->override_option('tab_options', array(
     'type' => 'none',
@@ -344,19 +349,19 @@ function votingapi_views_default_views() {
   ));
   $handler = $view->new_display('page', 'Current user', 'page_3');
   $handler->override_option('relationships', array(
-    'votingapi_vote' => array(
-      'label' => 'Votes',
-      'required' => 0,
+    'vapi_node_nid' => array(
+      'label' => 'Individual votes',
+      'required' => 1,
       'votingapi' => array(
         'value_type' => '',
-        'tag' => 'vote',
+        'tag' => '',
       ),
       'current_user' => TRUE,
-      'id' => 'votingapi_vote',
+      'id' => 'vapi_node_nid',
       'table' => 'node',
-      'field' => 'votingapi_vote',
+      'field' => 'vapi_node_nid',
       'override' => array(
-        'button' => 'Override',
+        'button' => 'Use default',
       ),
       'relationship' => 'none',
     ),
@@ -500,6 +505,7 @@ function votingapi_views_default_views() {
     'type' => 'normal',
     'title' => 'Your votes',
     'weight' => '0',
+    'name' => 'navigation',
   ));
   $handler->override_option('tab_options', array(
     'type' => 'none',
