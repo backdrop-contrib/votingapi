@@ -341,8 +341,8 @@ function votingapi_views_data_alter(&$views_data) {
 
   foreach ($default_relationships as $key => $data) {
     $pseudo = str_replace(array(' ','-','.'), '_', $data['content_type'] . '_' . $data['content_id_column']);
-    $pseudo_vote = empty($data['pseudo_vote']) ? 'vapi_'. $pseudo : empty($data['pseudo_vote']);
-    $pseudo_cache = empty($data['pseudo_cache']) ? 'vapic_'. $pseudo : empty($data['pseudo_cache']);
+    $pseudo_vote = empty($data['pseudo_vote']) ? 'vapi_'. $pseudo : $data['pseudo_vote'];
+    $pseudo_cache = empty($data['pseudo_cache']) ? 'vapic_'. $pseudo : $data['pseudo_cache'];
     
     $views_data[$data['base_table']][$pseudo_vote]['relationship'] = array(
       'title' => 'Individual votes',

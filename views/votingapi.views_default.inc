@@ -8,7 +8,7 @@
 
 function votingapi_views_default_views() {
   $views = array();
-
+    
   $view = new view;
   $view->name = 'top_content';
   $view->description = 'Top rated content';
@@ -17,7 +17,7 @@ function votingapi_views_default_views() {
   $view->base_table = 'node';
   $view->is_cacheable = FALSE;
   $view->api_version = 2;
-  $view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
+  $view->disabled = TRUE; /* Edit this to true to make a default view disabled initially */
   $handler = $view->new_display('default', 'Defaults', 'default');
   $handler->override_option('fields', array(
     'name' => array(
@@ -356,7 +356,7 @@ function votingapi_views_default_views() {
         'value_type' => '',
         'tag' => '',
       ),
-      'current_user' => TRUE,
+      'current_user' => 0,
       'id' => 'votingapi_vote',
       'table' => 'node',
       'field' => 'votingapi_vote',
@@ -429,6 +429,42 @@ function votingapi_views_default_views() {
         'button' => 'Use default',
       ),
       'relationship' => 'votingapi_vote',
+    ),
+  ));
+  $handler->override_option('arguments', array(
+    'uid' => array(
+      'default_action' => 'default',
+      'style_plugin' => 'default_summary',
+      'style_options' => array(),
+      'wildcard' => 'all',
+      'wildcard_substitution' => 'Everyone',
+      'title' => '%1\'s votes',
+      'default_argument_type' => 'current_user',
+      'default_argument' => '',
+      'validate_type' => 'none',
+      'validate_fail' => 'not found',
+      'break_phrase' => 0,
+      'not' => 0,
+      'id' => 'uid',
+      'table' => 'votingapi_vote',
+      'field' => 'uid',
+      'relationship' => 'votingapi_vote',
+      'override' => array(
+        'button' => 'Use default',
+      ),
+      'default_options_div_prefix' => '',
+      'default_argument_user' => 0,
+      'default_argument_fixed' => '',
+      'default_argument_php' => '',
+      'validate_argument_node_type' => array(
+        'page' => 0,
+        'story' => 0,
+      ),
+      'validate_argument_node_access' => 0,
+      'validate_argument_nid_type' => 'nid',
+      'validate_argument_vocabulary' => array(),
+      'validate_argument_type' => 'tid',
+      'validate_argument_php' => '',
     ),
   ));
   $handler->override_option('filters', array(
