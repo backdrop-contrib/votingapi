@@ -426,7 +426,7 @@ function _votingapi_get_standard_results($content_type, $content_id) {
   $sql  = "SELECT v.tag, v.value, v.value_type, COUNT(1) AS score ";
   $sql .= "FROM {votingapi_vote} v ";
   $sql .= "WHERE v.content_type = '%s' AND v.content_id = %d AND v.value_type = 'option' ";
-  $sql .= "GROUP BY v.value, v.tag";
+  $sql .= "GROUP BY v.value, v.tag, v.value_type";
   $results = db_query($sql, $content_type, $content_id);
   while ($result = db_fetch_array($results)) {
     $cache[$result['tag']][$result['value_type']]['option-'. $result['value']] = $result['score'];
