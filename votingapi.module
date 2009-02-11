@@ -301,15 +301,17 @@ function votingapi_delete_results($vote_results = array()) {
  *   $criteria['vote_source']
  *   $criteria['timestamp']   (If this is set, records with timestamps
  *      GREATER THAN the set value will be selected.)
+ * @param $limit
+ *   An optional integer specifying the maximum number of votes to return.
  * @return
  *   An array of votes matching the criteria.
  */
-function votingapi_select_votes($criteria = array()) {
+function votingapi_select_votes($criteria = array(), $limit = 0) {
   if (!empty($criteria['vote_source'])) {
     $criteria['timestamp'] = time() - variable_get('votingapi_anonymous_window', 3600);
   }
   $votes = array();
-  $result = _votingapi_select('vote', $criteria);
+  $result = _votingapi_select('vote', $criteria, $limit);
   while ($vote = db_fetch_array($result)) {
     $votes[] = $vote;
   }
@@ -331,12 +333,14 @@ function votingapi_select_votes($criteria = array()) {
  *   $criteria['vote_source']
  *   $criteria['timestamp']   (If this is set, records with timestamps
  *      GREATER THAN the set value will be selected.)
+ * @param $limit
+ *   An optional integer specifying the maximum number of votes to return.
  * @return
  *   An array of vote results matching the criteria.
  */
-function votingapi_select_results($criteria = array()) {
+function votingapi_select_results($criteria = array(), $limit = 0) {
   $cached = array();
-  $result = _votingapi_select('cache', $criteria);
+  $result = _votingapi_select('cache', $criteria, $limit);
   while ($cache = db_fetch_array($result)) {
     $cached[] = $cache;
   }
