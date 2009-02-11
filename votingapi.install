@@ -21,10 +21,9 @@ function votingapi_schema() {
     ),
     'primary key' => array('vote_id'),
     'indexes' => array(
-      'content' => array('content_type', 'content_id'),
       'content_uid' => array('content_type', 'content_id', 'uid'),
+      'content_uid_2' => array('content_type', 'uid'),
       'content_source' => array('content_type', 'content_id', 'vote_source'),
-      'content_vtype' => array('content_type', 'content_id', 'value_type'),
       'content_value_tag' => array('content_type', 'content_id', 'value_type', 'tag'),
     ),
   );
@@ -285,5 +284,14 @@ function votingapi_update_6100() {
   }
 
   // Yes, we loves us the SchemaAPI.
+  return $ret;
+}
+
+// More index tweaking for votingapi_vote table.
+function votingapi_update_6101() {
+  $ret = array();
+  db_drop_index($ret, '{votingapi_vote}', 'content');
+  db_drop_index($ret, '{votingapi_vote}', 'content_vtype');
+  db_add_index($ret, 'votingapi_vote', 'content_uid_2', array('content_type', 'uid'));
   return $ret;
 }
