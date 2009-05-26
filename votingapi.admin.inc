@@ -96,7 +96,7 @@ function votingapi_generate_votes($node_types, $vote_type, $kill_votes = FALSE) 
   $nids = array();
   
   $sql  = "SELECT n.nid, n.created FROM {node} n ";
-  $sql .= "WHERE n.type IN (". db_placeholders($node_types, 'varchar') . ") ";
+  $sql .= "WHERE n.type IN (" . db_placeholders($node_types, 'varchar') . ") ";
   $sql .= "ORDER BY n.created DESC";
   
   $results = db_query($sql, $node_types);

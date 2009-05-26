@@ -265,7 +265,7 @@ function votingapi_delete_votes($votes = array()) {
     foreach ($votes as $vote) {
       $vids[] = $vote['vote_id'];
     }
-    db_query("DELETE FROM {votingapi_vote} WHERE vote_id IN (". db_placeholders($vids) .")", $vids);
+    db_query("DELETE FROM {votingapi_vote} WHERE vote_id IN (" . db_placeholders($vids) . ")", $vids);
   }
 }
 
@@ -282,7 +282,7 @@ function votingapi_delete_results($vote_results = array()) {
     foreach ($vote_results as $vote) {
       $vids[] = $vote['vote_cache_id'];
     }
-    db_query("DELETE FROM {votingapi_cache} WHERE vote_cache_id IN (". db_placeholders($vids) .")", $vids);
+    db_query("DELETE FROM {votingapi_cache} WHERE vote_cache_id IN (" . db_placeholders($vids) . ")", $vids);
   }
 }
 
@@ -433,7 +433,7 @@ function _votingapi_get_standard_results($content_type, $content_id) {
   $sql .= "GROUP BY v.value, v.tag, v.value_type";
   $results = db_query($sql, $content_type, $content_id);
   while ($result = db_fetch_array($results)) {
-    $cache[$result['tag']][$result['value_type']]['option-'. $result['value']] = $result['score'];
+    $cache[$result['tag']][$result['value_type']]['option-' . $result['value']] = $result['score'];
   }
 
   return $cache;
@@ -486,7 +486,7 @@ function _votingapi_prep_vote(&$vote) {
  * Internal helper function constructs SELECT queries. Don't use unless you're me.
  */
 function _votingapi_select($table = 'vote', $criteria = array(), $limit = 0) {
-  $query = "SELECT * FROM {votingapi_". $table ."} v WHERE 1 = 1";
+  $query = "SELECT * FROM {votingapi_" . $table . "} v WHERE 1 = 1";
   $details = _votingapi_query('vote', $criteria);
 
   $query .= $details['query'];
@@ -497,7 +497,7 @@ function _votingapi_select($table = 'vote', $criteria = array(), $limit = 0) {
  * Internal helper function constructs DELETE queries. Don't use unless you're me.
  */
 function _votingapi_delete($table = 'vote', $criteria = array(), $limit = 0) {
-  $query = "DELETE FROM {votingapi_". $table ."} WHERE 1 = 1";
+  $query = "DELETE FROM {votingapi_" . $table . "} WHERE 1 = 1";
   $details = _votingapi_query('vote', $criteria, '');
 
   $query .= $details['query'];
@@ -562,11 +562,11 @@ function _votingapi_query_builder($name, $value, &$query, &$args, $col_is_string
   else {
     if (is_array($value)) {
       if ($col_is_string) {
-        $query .= " AND $name IN (". db_placeholders($value, 'varchar') .")";
+        $query .= " AND $name IN (" . db_placeholders($value, 'varchar') . ")";
         $args = array_merge($args, $value);
       }
       else {
-        $query .= " AND $name IN (". db_placeholders($value, 'int') .")";
+        $query .= " AND $name IN (" . db_placeholders($value, 'int') . ")";
         $args = array_merge($args, $value);
       }
     }
