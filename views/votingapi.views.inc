@@ -44,8 +44,8 @@ function votingapi_views_data() {
 
   // Define the base group of this table. Fields that don't
   // have a group defined will go into this field by default.
-  $data['votingapi_vote']['table']['group']  = t('Voting API votes');
-  $data['votingapi_cache']['table']['group']  = t('Voting API results');
+  $data['votingapi_vote']['table']['group']  = t('Votes');
+  $data['votingapi_cache']['table']['group']  = t('Vote results');
 
   // ----------------------------------------------------------------
   // Fields
@@ -320,37 +320,44 @@ function votingapi_views_data_alter(&$views_data) {
 
   // This format of array can be returned by any other module that stores
   // votes for tables that need relationships.
-  $default_relationships += array(
-    array(
-      // This text is used to construct the field desc. "Votes cast by users
-      // on [foo]", where [foo] is the value of the description key.
-      'description' => t('nodes'),
-      // This should contain the value that your module stores in the voting
-      // api 'content_type' column. 'node', 'comment', etc.
-      'content_type' => 'node',
-      // This should contain the name of the Views base table that stores the
-      // data your votes apply to.
-      'base_table' => 'node',
-      // This should contain the name of the views field that corresponds to
-      // the value your module stored in the voting api 'content_id' column.
-      'content_id_column' => 'nid',
-      // VotingAPI constructs pseudo-tables so that multiple relationships can
-      // point to the same base table (normal and translation-based votes nodes
-      // for example. These two columns allow you to override the names of the
-      // pseudo-tables. This default entry for node votes ensures that older
-      // views built against the standard relationships don't break.
-      'pseudo_vote' => 'votingapi_vote',
-      'pseudo_cache' => 'votingapi_cache',
-    ),
+  $default_relationships[] = array(
+    // This text is used to construct the field desc. "Votes cast by users
+    // on [foo]", where [foo] is the value of the description key.
+    'description' => t('nodes'),
+    // This should contain the value that your module stores in the voting
+    // api 'content_type' column. 'node', 'comment', etc.
+    'content_type' => 'node',
+    // This should contain the name of the Views base table that stores the
+    // data your votes apply to.
+    'base_table' => 'node',
+    // This should contain the name of the views field that corresponds to
+    // the value your module stored in the voting api 'content_id' column.
+    'content_id_column' => 'nid',
+    // VotingAPI constructs pseudo-tables so that multiple relationships can
+    // point to the same base table (normal and translation-based votes nodes
+    // for example. These two columns allow you to override the names of the
+    // pseudo-tables. This default entry for node votes ensures that older
+    // views built against the standard relationships don't break.
+    'pseudo_vote' => 'votingapi_vote',
+    'pseudo_cache' => 'votingapi_cache',
+  );
+  $default_relationships[] = array(
+    'description' => t('comments'),
+    'content_type' => 'comment',
+    'base_table' => 'comments',
+    'content_id_column' => 'cid',
+    'pseudo_vote' => 'votingapi_vote',
+    'pseudo_cache' => 'votingapi_cache',
   );
 
-  foreach ($default_relationships as $key => $data) {
+
+  foreach ($default_relationships as $data) {
     $pseudo = str_replace(array(' ','-','.'), '_', $data['content_type'] . '_' . $data['content_id_column']);
     $pseudo_vote = empty($data['pseudo_vote']) ? 'vapi_'. $pseudo : $data['pseudo_vote'];
     $pseudo_cache = empty($data['pseudo_cache']) ? 'vapic_'. $pseudo : $data['pseudo_cache'];
     
     $views_data[$data['base_table']][$pseudo_vote]['relationship'] = array(
-      'title' => 'Individual votes',
+      'title' => 'Votes',
       'help' => 'Votes cast by users on ' . $data['description'] . '.',
       'base' => 'votingapi_vote',
       'field' => 'content_id',
@@ -366,8 +373,8 @@ function votingapi_views_data_alter(&$views_data) {
     );
 
     $views_data[$data['base_table']][$pseudo_cache]['relationship'] = array(
-      'title' => 'Voting results',
-      'help' => 'The aggregate results of votes cast on ' . $data['description'] . '.',
+      'title' => 'Vote results',
+      'help' => 'Aggregate results of votes cast on ' . $data['description'] . '.',
       'base' => 'votingapi_cache',
       'field' => 'content_id',
       'relationship field' => $data['content_id_column'],
