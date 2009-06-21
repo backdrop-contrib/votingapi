@@ -120,6 +120,12 @@ function votingapi_views_data() {
     'argument' => array(
       'handler' => 'views_handler_argument_user_uid',
     ),
+    'relationship' => array(
+      'handler' => 'views_handler_relationship',
+      'base' => 'users',
+      'field' => 'uid',
+      'label' => t('Individual voter'),
+    ),
   );
 
   // uid
