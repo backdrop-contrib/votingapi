@@ -270,54 +270,6 @@ function votingapi_views_data() {
  * @}
  */
 
-function _votingapi_views_value_types($table = 'votingapi_vote') {
-  static $types;
-  if (!isset($types)) {
-    $types = array(
-      'percent' => t('Percent'),
-      'points' => t('Points')
-    );
-    $results = db_query("SELECT DISTINCT value_type FROM {" . $table . "}");
-    while ($tmp = db_fetch_object($results)) {
-      $types[$tmp->value_type] = drupal_ucfirst($tmp->value_type);
-    }
-    $types[''] = t('No filtering');
-  }
-  return $types;
-}
-
-function _votingapi_views_tags($table = 'votingapi_vote') {
-  static $tags;
-  if (!isset($tags)) {
-    $tags = array(
-      'vote' => t('Default vote'),
-    );
-    $results = db_query("SELECT DISTINCT tag FROM {" . $table . "}");
-    while ($tmp = db_fetch_object($results)) {
-      $tags[$tmp->tag] = drupal_ucfirst($tmp->tag);
-    }
-    $tags[''] = t('No filtering');
-  }
-  return $tags;
-}
-
-function _votingapi_views_functions() {
-  static $functions;
-  if (!isset($functions)) {
-    $functions = array(
-      'sum' => t('Sum'),
-      'count' => t('Count'),
-      'average' => t('Average'),
-    );
-    $results = db_query("SELECT DISTINCT function FROM {votingapi_cache}");
-    while ($tmp = db_fetch_object($results)) {
-      $functions[$tmp->function] = drupal_ucfirst($tmp->function);
-    }
-    $functions[''] = t('No filtering');
-  }
-  return $functions;
-}
-
 function votingapi_views_data_alter(&$views_data) {
   // Add relationship handlers for both tables, for any base tables currently
   // available to Views.

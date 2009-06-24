@@ -435,7 +435,7 @@ function votingapi_metadata($reset = FALSE) {
     $data = array(
       'tags' => array(
         'vote' => array(
-          'name' => t('Vote'),
+          'name' => t('Normal vote'),
           'description' => t('The default tag for votes on content. If multiple votes with different tags are being cast on a piece of content, consider casting a "summary" vote with this tag as well.'),
         ),
       ),
@@ -451,7 +451,7 @@ function votingapi_metadata($reset = FALSE) {
       ),
       'functions' => array(
         'count' => array(
-          'name' => t('Number of vots'),
+          'name' => t('Number of votes'),
           'description' => t('The number of votes cast for a given piece of content.'),
         ),
         'average' => array(

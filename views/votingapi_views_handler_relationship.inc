@@ -50,7 +50,11 @@ class votingapi_views_handler_relationship extends views_handler_relationship {
    */
   function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
-    foreach(votingapi_metatada() as $bin => $bin_data) {
+
+    $options['value_types'][''] = t('No filtering');
+    $options['tags'][''] = t('No filtering');
+    $options['functions'][''] = t('No filtering');
+    foreach(votingapi_metadata() as $bin => $bin_data) {
       foreach ($bin_data as $key => $data) {
         $options[$bin][$key] = $data['name'];
       }
