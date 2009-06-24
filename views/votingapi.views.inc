@@ -324,38 +324,22 @@ function votingapi_views_data_alter(&$views_data) {
 
   $default_relationships = module_invoke_all('votingapi_relationships');
 
-  // This format of array can be returned by any other module that stores
-  // votes for tables that need relationships.
   $default_relationships[] = array(
-    // This text is used to construct the field desc. "Votes cast by users
-    // on [foo]", where [foo] is the value of the description key.
     'description' => t('nodes'),
-    // This should contain the value that your module stores in the voting
-    // api 'content_type' column. 'node', 'comment', etc.
     'content_type' => 'node',
-    // This should contain the name of the Views base table that stores the
-    // data your votes apply to.
     'base_table' => 'node',
-    // This should contain the name of the views field that corresponds to
-    // the value your module stored in the voting api 'content_id' column.
     'content_id_column' => 'nid',
-    // VotingAPI constructs pseudo-tables so that multiple relationships can
-    // point to the same base table (normal and translation-based votes nodes
-    // for example. These two columns allow you to override the names of the
-    // pseudo-tables. This default entry for node votes ensures that older
-    // views built against the standard relationships don't break.
-    'pseudo_vote' => 'votingapi_vote',
-    'pseudo_cache' => 'votingapi_cache',
+    'pseudo_vote' => 'votingapi_vote',    // for legacy compatability w/RC1.
+    'pseudo_cache' => 'votingapi_cache',  // for legacy compatability w/RC1.
   );
   $default_relationships[] = array(
     'description' => t('comments'),
     'content_type' => 'comment',
     'base_table' => 'comments',
     'content_id_column' => 'cid',
-    'pseudo_vote' => 'votingapi_vote',
-    'pseudo_cache' => 'votingapi_cache',
+    'pseudo_vote' => 'votingapi_vote',    // for legacy compatability w/RC1.
+    'pseudo_cache' => 'votingapi_cache',  // for legacy compatability w/RC1.
   );
-
 
   foreach ($default_relationships as $data) {
     $pseudo = str_replace(array(' ','-','.'), '_', $data['content_type'] . '_' . $data['content_id_column']);
