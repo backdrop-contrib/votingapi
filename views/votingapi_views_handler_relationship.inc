@@ -50,6 +50,11 @@ class votingapi_views_handler_relationship extends views_handler_relationship {
    */
   function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
+    foreach(votingapi_metatada() as $bin => $bin_data) {
+      foreach ($bin_data as $key => $data) {
+        $options[$bin][$key] = $data['name'];
+      }
+    }
 
     $form['votingapi'] = array(
       '#type' => 'fieldset',
@@ -61,13 +66,13 @@ class votingapi_views_handler_relationship extends views_handler_relationship {
     $form['votingapi']['value_type'] = array(
       '#title' => t('Value type'),
       '#type' => 'select',
-      '#options' => _votingapi_views_value_types($this->definition['base']),
+      '#options' => $options['value_types'],
       '#default_value' => $this->options['votingapi']['value_type'],
     );
     $form['votingapi']['tag'] = array(
       '#title' => t('Vote tag'),
       '#type' => 'select',
-      '#options' => _votingapi_views_tags($this->definition['base']),
+      '#options' => $options['tags'],
       '#default_value' => $this->options['votingapi']['tag'],
     );
 
@@ -75,7 +80,7 @@ class votingapi_views_handler_relationship extends views_handler_relationship {
       $form['votingapi']['function'] = array(
         '#title' => t('Aggregation function'),
         '#type' => 'select',
-        '#options' => _votingapi_views_functions(),
+        '#options' => $options['functions'],
         '#default_value' => $this->options['votingapi']['function'],
       );
     }

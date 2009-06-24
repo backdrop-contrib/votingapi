@@ -55,4 +55,4 @@ Updated for compatibility with Views RC2, added the ability to filter Views rela
 
 06/20/09
 --------
-Changed hook_votingapi_content_types() to hook_votingapi_relationships(), since it only deals with Views relationships. Added extra documentation to API.txt and fixed assorted ugly bugs. Nodes and comments now have pre-configured relationships available, any other entity types need a hook_votingapi_relationships() implementation.
+Changed hook_votingapi_content_types() to hook_votingapi_relationships(), since it only deals with Views relationships. Added extra documentation to API.txt and fixed assorted ugly bugs. Moved a bunch of API docs to votingapi.api.php so API.module can generate pretty docs for the hooks. Nodes and comments now have pre-configured relationships available, any other entity types need a hook_votingapi_relationships() implementation.
