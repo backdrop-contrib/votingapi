@@ -408,6 +408,70 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
 
 
 /**
+ * Returns metadata about tags, value_types, and results defined by vote modules.
+ *
+ * If your module needs to determine what existing tags, value_types, etc., are
+ * being supplied by other modules, call this function. Querying the votingapi
+ * tables for this information directly is discouraged, as values may not appear
+ * consistently. (For example, 'average' does not appear in the cache table until
+ * votes have actually been cast in the cache table.)
+ *
+ * Three major bins of data are stored: tags, value_types, and functions. Each
+ * entry in these bins is keyed by the value stored in the actual VotingAPI
+ * tables, and contains an array with (minimally) 'name' and 'description' keys.
+ * Modules can add extra keys to their entries if desired.
+ *
+ * This metadata can be modified or expanded using hook_votingapi_metadata_alter().
+ *
+ * @return
+ *   An array of metadata defined by VotingAPI and altered by vote modules.
+ *
+ * @see hook_votingapi_metadata_alter()
+ */
+function votingapi_metadata($reset = FALSE) {
+  static $data;
+  if ($reset || !isset($data)) {
+    $data = array(
+      'tags' => array(
+        'vote' => array(
+          'name' => t('Vote'),
+          'description' => t('The default tag for votes on content. If multiple votes with different tags are being cast on a piece of content, consider casting a "summary" vote with this tag as well.'),
+        ),
+      ),
+      'value_types' => array(
+        'percent' => array(
+          'name' => t('Percent'),
+          'description' => t('Votes in a specific range. Values are stored in a 1-100 range, but can be represented as any scale when shown to the user.'),
+        ),
+        'points' => array(
+          'name' => t('Points'),
+          'description' => t('Votes that contribute points/tokens/karma towards a total. May be positive or negative.'),
+        ),
+      ),
+      'functions' => array(
+        'count' => array(
+          'name' => t('Number of vots'),
+          'description' => t('The number of votes cast for a given piece of content.'),
+        ),
+        'average' => array(
+          'name' => t('Average vote'),
+          'description' => t('The average vote cast on a given piece of content.'),
+        ),
+        'sum' => array(
+          'name' => t('Total score'),
+          'description' => t('The sum of all votes for a given piece of content.'),
+          'value_types' => array('points'),
+        ),
+      ),
+    );
+
+    drupal_alter('votingapi_metadata', $data);
+  }
+  
+  return $data;
+}
+
+/**
  * Builds the default VotingAPI results for the three supported voting styles.
  */
 function _votingapi_get_standard_results($content_type, $content_id) {
@@ -583,3 +647,4 @@ function _votingapi_query_builder($name, $value, &$query, &$args, $col_is_string
     }
   }
 }
+
