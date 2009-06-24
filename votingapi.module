@@ -292,7 +292,7 @@ function votingapi_delete_results($vote_results = array()) {
  * @param $criteria
  *   A keyed array used to build the select query. Keys can contain
  *   a single value or an array of values to be matched.
- *   $criteria['vote_id']       (If this is set, all other keyes are skipped)
+ *   $criteria['vote_id']       (If this is set, all other keys are skipped)
  *   $criteria['content_id']
  *   $criteria['content_type']
  *   $criteria['value_type']
@@ -325,11 +325,12 @@ function votingapi_select_votes($criteria = array(), $limit = 0) {
  * @param $criteria
  *   A keyed array used to build the select query. Keys can contain
  *   a single value or an array of values to be matched.
- *   $criteria['vote_cache_id']     (If this is set, all other keyes are skipped)
- *   $criteria['content_type']
+ *   $criteria['vote_cache_id']     (If this is set, all other keys are skipped)
+ *   $criteria['content_id']
  *   $criteria['content_type']
  *   $criteria['value_type']
  *   $criteria['tag']
+ *   $criteria['function']
  *   $criteria['uid']
  *   $criteria['vote_source']
  *   $criteria['timestamp']   (If this is set, records with timestamps
