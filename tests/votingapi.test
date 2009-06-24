@@ -6,15 +6,13 @@
  * Test file for VotingAPI module.
  */
 
-class VotingapiTestCase extends DrupalWebTestCase {
-  /**
-   * Implementation of getInfo().
-   */
-  function getInfo() {
+class VotingAPITestCase extends DrupalWebTestCase {
+  public static function getInfo() {
     return array(
       'name' => t('Voting API'),
-      'desc' => t('Voting API'),
-      'group' => t('Voting API Tests'));
+      'description' => t('Voting API'),
+      'group' => t('Voting API Tests'),
+    );
   }
 
   function setUp() {
