@@ -23,10 +23,6 @@ function votingapi_views_handlers() {
         'parent' => 'views_handler_field_numeric',
         'path' => drupal_get_path('module', 'votingapi') . '/views',
       ),
-      'votingapi_views_handler_filter_value' => array(
-        'parent' => 'views_handler_filter_numeric',
-        'path' => drupal_get_path('module', 'votingapi') . '/views',
-      ),
       'votingapi_views_handler_relationship' => array(
         'parent' => 'views_handler_relationship',
         'path' => drupal_get_path('module', 'votingapi') . '/views',
@@ -60,7 +56,7 @@ function votingapi_views_data() {
       'click sortable' => TRUE,
     ),
     'filter' => array(
-      'handler' => 'votingapi_views_handler_filter_value',
+      'handler' => 'views_handler_filter_numeric',
       'allow empty' => TRUE,
     ),
     'sort' => array(
@@ -186,7 +182,7 @@ function votingapi_views_data() {
       'click sortable' => TRUE,
     ),
     'filter' => array(
-      'handler' => 'votingapi_views_handler_filter_value',
+      'handler' => 'views_handler_filter_numeric',
       'allow empty' => TRUE,
     ),
     'sort' => array(
