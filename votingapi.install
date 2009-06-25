@@ -290,8 +290,8 @@ function votingapi_update_6100() {
 // More index tweaking for votingapi_vote table.
 function votingapi_update_6101() {
   $ret = array();
-  db_drop_index($ret, '{votingapi_vote}', 'content');
-  db_drop_index($ret, '{votingapi_vote}', 'content_vtype');
+  db_drop_index($ret, 'votingapi_vote', 'content');
+  db_drop_index($ret, 'votingapi_vote', 'content_vtype');
   db_add_index($ret, 'votingapi_vote', 'content_uid_2', array('content_type', 'uid'));
   return $ret;
 }
