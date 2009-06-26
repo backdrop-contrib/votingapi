@@ -295,3 +295,14 @@ function votingapi_update_6101() {
   db_add_index($ret, 'votingapi_vote', 'content_uid_2', array('content_type', 'uid'));
   return $ret;
 }
+
+// Update 6101 was borked -- we'll do the same work again in this update to make sure
+// everything is tidy.
+function votingapi_update_6200() {
+  $ret = array();
+  db_drop_index($ret, 'votingapi_vote', 'content');
+  db_drop_index($ret, 'votingapi_vote', 'content_vtype');
+  db_drop_index($ret, 'votingapi_vote', 'content_uid_2');
+  db_add_index($ret, 'votingapi_vote', 'content_uid_2', array('content_type', 'uid'));
+  return $ret;
+}
