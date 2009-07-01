@@ -65,7 +65,7 @@ function votingapi_views_api() {
  */
 function votingapi_cron() {
   if (variable_get('votingapi_calculation_schedule', 'immediate') == 'cron') {
-    $time = time();
+    $time = REQUEST_TIME;
     $last_cron = variable_get('votingapi_last_cron', 0);
     $result = db_query('SELECT DISTINCT content_type, content_id FROM {votingapi_vote} WHERE timestamp > %d', $last_cron);
 
@@ -97,7 +97,7 @@ function votingapi_cron() {
  *   $vote['tag']           (Optional, defaults to 'vote')
  *   $vote['uid']           (Optional, defaults to current user)
  *   $vote['vote_source']   (Optional, defaults to current IP)
- *   $vote['timestamp']     (Optional, defaults to time())
+ *   $vote['timestamp']     (Optional, defaults to REQUEST_TIME)
  * @param $criteria
  *   A keyed array used to determine what votes will be deleted when the current
  *   vote is cast. If no value is specified, all votes for the current content
@@ -202,7 +202,7 @@ function votingapi_current_user_identifier() {
  *   $vote['tag']           (Optional, defaults to 'vote')
  *   $vote['uid']           (Optional, defaults to current user)
  *   $vote['vote_source']   (Optional, defaults to current IP)
- *   $vote['timestamp']     (Optional, defaults to time())
+ *   $vote['timestamp']     (Optional, defaults to REQUEST_TIME)
  * @return
  *   The same votes, with vote_id keys populated.
  *
@@ -238,7 +238,7 @@ function votingapi_add_votes(&$votes) {
  *   $vote_result['value']
  *   $vote_result['tag']
  *   $vote_result['function']
- *   $vote_result['timestamp']   (Optional, defaults to time())
+ *   $vote_result['timestamp']   (Optional, defaults to REQUEST_TIME)
  */
 function votingapi_add_results($vote_results = array()) {
   if (!empty($vote_results['content_id'])) {
@@ -246,7 +246,7 @@ function votingapi_add_results($vote_results = array()) {
   }
 
   foreach ($vote_results as $vote_result) {
-    $vote_result['timestamp'] = time();
+    $vote_result['timestamp'] = REQUEST_TIME;
     drupal_write_record('votingapi_cache', $vote_result);
   }
 }
@@ -309,7 +309,7 @@ function votingapi_delete_results($vote_results = array()) {
 function votingapi_select_votes($criteria = array(), $limit = 0) {
   $anon_window = variable_get('votingapi_anonymous_window', 3600);
   if (!empty($criteria['vote_source']) && $anon_window > 0) {
-    $criteria['timestamp'] = time() - $anon_window;
+    $criteria['timestamp'] = REQUEST_TIME - $anon_window;
   }
   $votes = array();
   $result = _votingapi_select('vote', $criteria, $limit);
@@ -468,7 +468,7 @@ function votingapi_metadata($reset = FALSE) {
 
     drupal_alter('votingapi_metadata', $data);
   }
-  
+
   return $data;
 }
 
@@ -540,7 +540,7 @@ function _votingapi_prep_vote(&$vote) {
       'value_type' => 'percent',
       'tag' => 'vote',
       'uid' => $user->uid,
-      'timestamp' => time(),
+      'timestamp' => REQUEST_TIME,
       'vote_source' => ip_address(),
       'prepped' => TRUE
     );

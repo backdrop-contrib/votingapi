@@ -13,7 +13,7 @@
  * VotingAPI calculates a number of common aggregate functions automatically,
  * including the average vote and total number of votes cast. Results are grouped
  * by 'tag', 'value_type', and then 'function' in the following format:
- * 
+ *
  *   $results[$tag][$value_type][$aggregate_function] = $value;
  *
  * If no custom tag is being used for votes, the catch-all "vote" tag should be
@@ -34,7 +34,7 @@
 function hook_votingapi_results_alter(&$results, $content_type, $content_id) {
   // We're using a MySQLism (STDDEV isn't ANSI SQL), but it's OK because this is
   // an example. And no one would ever base real code on sample code. Ever. Never.
-  
+
   $sql  = "SELECT v.tag, STDDEV(v.value) as standard_deviation ";
   $sql .= "FROM {votingapi_vote} v ";
   $sql .= "WHERE v.content_type = '%s' AND v.content_id = %d AND v.value_type = 'percent' ";
@@ -44,7 +44,7 @@ function hook_votingapi_results_alter(&$results, $content_type, $content_id) {
 
   // VotingAPI wants the data in the following format:
   // $cache[$tag][$value_type][$aggregate_function] = $value;
-  
+
   while ($result = db_fetch_array($results)) {
     $cache[$result['tag']]['percent']['standard_deviation'] = $result['standard_deviation'];
   }
@@ -80,8 +80,8 @@ function hook_votingapi_metadata_alter(&$data) {
     'description' => t('The quality of the presentation and atmosphere at a restaurant.'),
     'module' => 'mymodule',
   );
-  
-  // Document two custom aggregate function. 
+
+  // Document two custom aggregate function.
   $data['functions']['standard_deviation'] = array(
     'name' => t('Standard deviation'),
     'description' => t('The standard deviation of all votes cast on a given piece of content. Use this to find controversial content.'),
@@ -93,6 +93,7 @@ function hook_votingapi_metadata_alter(&$data) {
     'module' => 'mymodule',
   );
 }
+
 
 /**
  * Return metadata used to build Views relationships on voting data.
@@ -111,20 +112,20 @@ function hook_votingapi_relationships() {
   $relationships[] = array(
     // 'description' is used to construct the field description in the Views UI.
     'description' => t('users'),
-    
+
     // 'content_type' contain the value that your module stores in the voting
     // api 'content_type' column. 'node', 'comment', etc.
     'content_type' => 'user',
-    
+
     // 'base_table' contain the name of the Views base table that stores the
     // data your votes apply to.
     'base_table' => 'user',
-    
+
     // 'content_id_column' contains the name of the views field that represents
     // your base_table's primary key. This column will be joined against the
     // voting api 'content_id' column.
     'content_id_column' => 'uid',
-    
+
     // VotingAPI constructs pseudo-tables so that multiple relationships can
     // point to the same base table (normal and translation-based votes nodes
     // for example. These two columns allow you to override the names of the
@@ -134,8 +135,6 @@ function hook_votingapi_relationships() {
     'pseudo_cache' => 'votingapi_cache_special',
   );
 }
-
-
 
 /**
  * Returns callback functions and descriptions to format a VotingAPI Views field.

@@ -57,7 +57,7 @@ class VotingAPITestCase extends DrupalWebTestCase {
       $result = votingapi_add_votes($vote);
       // Test that the result has its fields set appropriately.
       $this->validateVote('testMinimalAdd()', $result, $nid, array($value));
-      $this->assertTrue(time() - $result[0]['timestamp'] < 2, t('The timestamp should be less than 2 seconds ago.'));
+      $this->assertTrue(REQUEST_TIME - $result[0]['timestamp'] < 2, t('The timestamp should be less than 2 seconds ago.'));
     }
     catch (Exception $e) {
       $this->fail(t('Could not add a vote with only content_id and value.'));
@@ -79,7 +79,7 @@ class VotingAPITestCase extends DrupalWebTestCase {
       $result = votingapi_add_votes($vote);
       // Test that the result has its fields set appropriately.
       $this->validateVote("testAddVote()", $result, $nid, $value, 'node', $user->uid);
-      $this->assertTrue(time() - $result[0]['timestamp'] < 2, t('The timestamp should be less than 2 seconds ago.'));
+      $this->assertTrue(REQUEST_TIME - $result[0]['timestamp'] < 2, t('The timestamp should be less than 2 seconds ago.'));
     }
     catch (Exception $e) {
       $this->fail('The votingapi_add_votes threw an error during the "votingapi_add_votes" call.');

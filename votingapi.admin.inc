@@ -94,16 +94,16 @@ function votingapi_generate_votes($node_types, $vote_type, $kill_votes = FALSE) 
 
   $uids = devel_get_users();
   $nids = array();
-  
+
   $sql  = "SELECT n.nid, n.created FROM {node} n ";
   $sql .= "WHERE n.type IN (" . db_placeholders($node_types, 'varchar') . ") ";
   $sql .= "ORDER BY n.created DESC";
-  
+
   $results = db_query($sql, $node_types);
   while ($node = db_fetch_array($results)) {
     $nids[$node['nid']] = $node['created'];
   }
-  
+
   foreach ($nids as $nid => $timestamp) {
     _votingapi_cast_votes($nid, $timestamp, $uids, $vote_type);
   }
@@ -122,7 +122,7 @@ function _votingapi_cast_votes($nid, $timestamp, $uids, $style) {
             'uid' => $uid,
             'content_id' => $nid,
             'value_type' => 'percent',
-            'timestamp' => time() - rand(0, time() - $timestamp),
+            'timestamp' => REQUEST_TIME - rand(0, REQUEST_TIME - $timestamp),
             'value' => rand(0, 5) * 20,
           );
         }
@@ -133,7 +133,7 @@ function _votingapi_cast_votes($nid, $timestamp, $uids, $style) {
             'uid' => $uid,
             'content_id' => $nid,
             'value_type' => 'points',
-            'timestamp' => time() - rand(0, time() - $timestamp),
+            'timestamp' => REQUEST_TIME - rand(0, REQUEST_TIME - $timestamp),
             'value' => 1,
           );
         }
@@ -144,7 +144,7 @@ function _votingapi_cast_votes($nid, $timestamp, $uids, $style) {
             'uid' => $uid,
             'content_id' => $nid,
             'value_type' => 'points',
-            'timestamp' => time() - rand(0, time() - $timestamp),
+            'timestamp' => REQUEST_TIME - rand(0, REQUEST_TIME - $timestamp),
             'value' => rand(0, 1) ? 1 : -1,
           );
         }

@@ -246,7 +246,7 @@ function votingapi_update_9() {
 
   db_add_column($ret, 'votingapi_cache', 'timestamp', 'int', array('length' => 11, 'default' => NULL));
 
-  $ret[] = update_sql("UPDATE {votingapi_cache} SET timestamp = " . time() . " WHERE timestamp IS NULL;");
+  $ret[] = update_sql("UPDATE {votingapi_cache} SET timestamp = " . REQUEST_TIME . " WHERE timestamp IS NULL;");
   return $ret;
 }
 
