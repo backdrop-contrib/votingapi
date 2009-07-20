@@ -7,3 +7,4 @@ core = 7.x
 files[] = votingapi.module
 files[] = votingapi.admin.inc
 files[] = votingapi.install
+files[] = tests/votingapi.test

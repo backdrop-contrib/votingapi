@@ -39,16 +39,11 @@ function votingapi_settings_form($form_state) {
  * Developer tool to generate dummy votes.
  */
 function votingapi_generate_votes_form() {
-  $types = node_get_types();
-  foreach ($types as $type) {
-    $options[$type->type] = t($type->name);
-  }
-
   $form['node_types'] = array(
     '#type' => 'checkboxes',
     '#title' => t('Which node types should receive votes?'),
-    '#options' => $options,
-    '#default_value' => array_keys($options),
+    '#options' => node_type_get_names(),
+    '#default_value' => array_keys(node_type_get_names()),
   );
 
   $form['vote_type'] = array(
@@ -88,24 +83,19 @@ function votingapi_generate_votes($node_types, $vote_type, $kill_votes = FALSE) 
   module_load_include('inc', 'devel_generate');
 
   if ($kill_votes) {
-    db_query("TRUNCATE TABLE {votingapi_vote}");
-    db_query("TRUNCATE TABLE {votingapi_cache}");
+    db_truncate('votingapi_vote');
+    db_truncate('votingapi_cache');
   }
 
   $uids = devel_get_users();
-  $nids = array();
+  
+  $results = db_select('node', 'n')
+    ->fields('n', array('nid', 'created'))
+    ->condition('n.type', $node_types, 'IN')
+    ->execute();
 
-  $sql  = "SELECT n.nid, n.created FROM {node} n ";
-  $sql .= "WHERE n.type IN (" . db_placeholders($node_types, 'varchar') . ") ";
-  $sql .= "ORDER BY n.created DESC";
-
-  $results = db_query($sql, $node_types);
-  while ($node = db_fetch_array($results)) {
-    $nids[$node['nid']] = $node['created'];
-  }
-
-  foreach ($nids as $nid => $timestamp) {
-    _votingapi_cast_votes($nid, $timestamp, $uids, $vote_type);
+  foreach ($results as $node) {
+    _votingapi_cast_votes($node->nid, $node->created, $uids, $vote_type);
   }
 }
 

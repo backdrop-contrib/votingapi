@@ -265,7 +265,7 @@ function votingapi_delete_votes($votes = array()) {
     foreach ($votes as $vote) {
       $vids[] = $vote['vote_id'];
     }
-    db_query("DELETE FROM {votingapi_vote} WHERE vote_id IN (" . db_placeholders($vids) . ")", $vids);
+    db_delete('votingapi_vote')->condition('vote_id', $vids, 'IN')->execute();
   }
 }
 
@@ -282,7 +282,7 @@ function votingapi_delete_results($vote_results = array()) {
     foreach ($vote_results as $vote) {
       $vids[] = $vote['vote_cache_id'];
     }
-    db_query("DELETE FROM {votingapi_cache} WHERE vote_cache_id IN (" . db_placeholders($vids) . ")", $vids);
+    db_delete('votingapi_cache')->condition('vote_cache_id', $vids, 'IN')->execute();
   }
 }
 
@@ -311,12 +311,14 @@ function votingapi_select_votes($criteria = array(), $limit = 0) {
   if (!empty($criteria['vote_source']) && $anon_window > 0) {
     $criteria['timestamp'] = REQUEST_TIME - $anon_window;
   }
-  $votes = array();
-  $result = _votingapi_select('vote', $criteria, $limit);
-  while ($vote = db_fetch_array($result)) {
-    $votes[] = $vote;
+  $query = db_select('votingapi_vote')->fields('votingapi_vote');
+  foreach ($criteria as $key => $value) {
+    $query->condition($key, $value, is_array($value) ? 'IN' : '=');
   }
-  return $votes;
+  if (!empty($limit)) {
+    $query->range(0, $limit);
+  }
+  return $query->execute()->fetchAll(PDO::FETCH_ASSOC);
 }
 
 /**
@@ -339,12 +341,14 @@ function votingapi_select_votes($criteria = array(), $limit = 0) {
  *   An array of vote results matching the criteria.
  */
 function votingapi_select_results($criteria = array(), $limit = 0) {
-  $cached = array();
-  $result = _votingapi_select('cache', $criteria, $limit);
-  while ($cache = db_fetch_array($result)) {
-    $cached[] = $cache;
+  $query = db_select('votingapi_cache')->fields('votingapi_cache');
+  foreach ($criteria as $key => $value) {
+    $query->condition($key, $value, is_array($value) ? 'IN' : '=');
   }
-  return $cached;
+  if (!empty($limit)) {
+    $query->range(0, $limit);
+  }
+  return $query->execute()->fetchAll(PDO::FETCH_ASSOC);
 }
 
 /**
@@ -371,9 +375,11 @@ function votingapi_recalculate_results($content_type, $content_id, $force_calcul
   // bail out. The cron run will pick up the results.
 
   if (variable_get('votingapi_calculation_schedule', 'immediate') != 'cron' || $force_calculation == TRUE) {
-    $criteria = array('content_type' => $content_type, 'content_id' => $content_id);
-    _votingapi_delete('cache', $criteria);
-
+    $query = db_delete('votingapi_cache')
+      ->condition('content_type', $content_type)
+      ->condition('content_id', $content_id)
+      ->execute();
+      
     // Bulk query to pull the majority of the results we care about.
     $cache = _votingapi_get_standard_results($content_type, $content_id);
 
@@ -479,25 +485,26 @@ function _votingapi_get_standard_results($content_type, $content_id) {
   $sql  = "SELECT v.value_type, v.tag, ";
   $sql .= "COUNT(v.value) as value_count, SUM(v.value) as value_sum  ";
   $sql .= "FROM {votingapi_vote} v ";
-  $sql .= "WHERE v.content_type = '%s' AND v.content_id = %d AND v.value_type IN ('points', 'percent') ";
+  $sql .= "WHERE v.content_type = :type AND v.content_id = :id AND v.value_type IN ('points', 'percent') ";
   $sql .= "GROUP BY v.value_type, v.tag";
-  $results = db_query($sql, $content_type, $content_id);
+  $results = db_query($sql, array(':type' => $content_type, ':id' => $content_id));
 
-  while ($result = db_fetch_array($results)) {
-    $cache[$result['tag']][$result['value_type']]['count'] = $result['value_count'];
-    $cache[$result['tag']][$result['value_type']]['average'] = $result['value_sum'] / $result['value_count'];
-    if ($result['value_type'] == 'points') {
-      $cache[$result['tag']][$result['value_type']]['sum'] = $result['value_sum'];
+  foreach ($results as $result) {
+    $cache[$result->tag][$result->value_type]['count'] = $result->value_count;
+    $cache[$result->tag][$result->value_type]['average'] = $result->value_sum / $result->value_count;
+    if ($result->value_type == 'points') {
+      $cache[$result->tag][$result->value_type]['sum'] = $result->value_sum;
     }
   }
 
   $sql  = "SELECT v.tag, v.value, v.value_type, COUNT(1) AS score ";
   $sql .= "FROM {votingapi_vote} v ";
-  $sql .= "WHERE v.content_type = '%s' AND v.content_id = %d AND v.value_type = 'option' ";
+  $sql .= "WHERE v.content_type = :type AND v.content_id = :id AND v.value_type = 'option' ";
   $sql .= "GROUP BY v.value, v.tag, v.value_type";
-  $results = db_query($sql, $content_type, $content_id);
-  while ($result = db_fetch_array($results)) {
-    $cache[$result['tag']][$result['value_type']]['option-' . $result['value']] = $result['score'];
+  $results = db_query($sql, array(':type' => $content_type, ':id' => $content_id));
+
+  foreach ($results as $result) {
+    $cache[$result->tag][$result->value_type]['option-' . $result->value] = $result->score;
   }
 
   return $cache;
@@ -544,106 +551,3 @@ function _votingapi_prep_vote(&$vote) {
     );
   }
 }
-
-
-/**
- * Internal helper function constructs SELECT queries. Don't use unless you're me.
- */
-function _votingapi_select($table = 'vote', $criteria = array(), $limit = 0) {
-  $query = "SELECT * FROM {votingapi_" . $table . "} v WHERE 1 = 1";
-  $details = _votingapi_query('vote', $criteria);
-
-  $query .= $details['query'];
-  return $limit ? db_query_range($query, $details['args'], 0, $limit) : db_query($query, $details['args']);
-}
-
-/**
- * Internal helper function constructs DELETE queries. Don't use unless you're me.
- */
-function _votingapi_delete($table = 'vote', $criteria = array(), $limit = 0) {
-  $query = "DELETE FROM {votingapi_" . $table . "} WHERE 1 = 1";
-  $details = _votingapi_query('vote', $criteria, '');
-
-  $query .= $details['query'];
-  db_query($query, $details['args']);
-}
-
-/**
- * Internal helper function constructs WHERE clauses. Don't use unless you're me.
- */
-function _votingapi_query($table = 'vote', $criteria = array(), $alias = 'v.') {
-  $criteria += array(
-    'vote_id' => NULL,
-    'vote_cache_id' => NULL,
-    'content_id' => NULL,
-    'content_type' => NULL,
-    'value_type' => NULL,
-    'value' => NULL,
-    'tag' => NULL,
-    'uid' => NULL,
-    'timestamp' => NULL,
-    'vote_source' => NULL,
-    'function' => NULL,
-  );
-
-  $query = '';
-  $args = array();
-  if (!empty($criteria['vote_id'])) {
-    _votingapi_query_builder($alias . 'vote_id', $criteria['vote_id'], $query, $args);
-  }
-  elseif (!empty($criteria['vote_cache_id'])) {
-    _votingapi_query_builder($alias . 'vote_cache_id', $criteria['vote_cache_id'], $query, $args);
-  }
-  else {
-    _votingapi_query_builder($alias . 'content_type', $criteria['content_type'], $query, $args, TRUE);
-    _votingapi_query_builder($alias . 'content_id', $criteria['content_id'], $query, $args);
-    _votingapi_query_builder($alias . 'value_type', $criteria['value_type'], $query, $args, TRUE);
-    _votingapi_query_builder($alias . 'tag', $criteria['tag'], $query, $args, TRUE);
-    _votingapi_query_builder($alias . 'function', $criteria['function'], $query, $args, TRUE);
-    _votingapi_query_builder($alias . 'uid', $criteria['uid'], $query, $args);
-    _votingapi_query_builder($alias . 'vote_source', $criteria['vote_source'], $query, $args, TRUE);
-    _votingapi_query_builder($alias . 'timestamp', $criteria['timestamp'], $query, $args);
-  }
-  return array('query' => $query, 'args' => $args);
-}
-
-/**
- * Internal helper function constructs individual elements of WHERE clauses.
- * Don't use unless you're me.
- */
-function _votingapi_query_builder($name, $value, &$query, &$args, $col_is_string = FALSE) {
-  if (!isset($value)) {
-    // Do nothing
-  }
-  elseif ($name === 'timestamp') {
-    $query .= " AND timestamp >= %d";
-    $args[] = $value;
-  }
-  elseif ($name === 'v.timestamp') {
-    $query .= " AND v.timestamp >= %d";
-    $args[] = $value;
-  }
-  else {
-    if (is_array($value)) {
-      if ($col_is_string) {
-        $query .= " AND $name IN (" . db_placeholders($value, 'varchar') . ")";
-        $args = array_merge($args, $value);
-      }
-      else {
-        $query .= " AND $name IN (" . db_placeholders($value, 'int') . ")";
-        $args = array_merge($args, $value);
-      }
-    }
-    else {
-      if ($col_is_string) {
-        $query .= " AND $name = '%s'";
-        $args[] = $value;
-      }
-      else {
-        $query .= " AND $name = %d";
-        $args[] = $value;
-      }
-    }
-  }
-}
-

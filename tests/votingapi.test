@@ -9,9 +9,9 @@
 class VotingAPITestCase extends DrupalWebTestCase {
   public static function getInfo() {
     return array(
-      'name' => t('Voting API'),
-      'description' => t('Voting API'),
-      'group' => t('Voting API Tests'),
+      'name' => 'Voting API',
+      'description' => 'Voting API',
+      'group' => 'Voting API Tests',
     );
   }
 
