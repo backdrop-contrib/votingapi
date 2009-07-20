@@ -331,8 +331,6 @@ function votingapi_select_votes($criteria = array(), $limit = 0) {
  *   $criteria['value_type']
  *   $criteria['tag']
  *   $criteria['function']
- *   $criteria['uid']
- *   $criteria['vote_source']
  *   $criteria['timestamp']   (If this is set, records with timestamps
  *      GREATER THAN the set value will be selected.)
  * @param $limit
