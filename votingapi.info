@@ -6,5 +6,12 @@ core = 7.x
 
 files[] = votingapi.module
 files[] = votingapi.admin.inc
+files[] = votingapi.drush.inc
 files[] = votingapi.install
+
 files[] = tests/votingapi.test
+
+files[] = views/votingapi.views.inc
+files[] = views/votingapi.views_default.inc
+files[] = views/votingapi_views_handler_field_value.inc
+files[] = views/votingapi_views_handler_relationship.inc

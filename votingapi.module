@@ -53,7 +53,7 @@ function votingapi_perm() {
  */
 function votingapi_views_api() {
   return array(
-    'api' => 2,
+    'api' => 3,
     'path' => drupal_get_path('module', 'votingapi') . '/views',
   );
 }
