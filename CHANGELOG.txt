@@ -58,3 +58,7 @@ Updated for compatibility with Views RC2, added the ability to filter Views rela
 Changed hook_votingapi_content_types() to hook_votingapi_relationships(), since it only deals with Views relationships. Added extra documentation to API.txt and fixed assorted ugly bugs. Moved a bunch of API docs to votingapi.api.php so API.module can generate pretty docs for the hooks. Nodes and comments now have pre-configured relationships available, any other entity types need a hook_votingapi_relationships() implementation.
 
 Added votingapi_metadata() to gather metadata about defined value_types, tags, and aggregate functions. Modified the views relationship handler to use that function rather than querying the tables directly.
+
+01/26/10
+--------
+Drupal 7 port approaches completion. Changed the content_type and content_id indicators to entity_type and entity_id, to avoid confusion between VotingAPI 'content types' and Drupal 'node types'. Added Drush support for generating, flushing, and recalculating voting data.
