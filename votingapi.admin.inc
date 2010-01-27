@@ -50,9 +50,8 @@ function votingapi_generate_votes_form() {
     '#type' => 'select',
     '#title' => t('What type of votes should be generated?'),
     '#options' => array(
-      'five' => t('Fivestar style'),
-      'flag' => t('Digg style'),
-      'updown' => t('Reddit style'),
+      'percent' => t('Percentage (Fivestar style)'),
+      'points' => t('Point-based (Digg style)'),
     ),
     '#default_value' => 'percent',
   );
@@ -73,73 +72,10 @@ function votingapi_generate_votes_form() {
  * Submit handler for votingapi_generate_votes_form.
  */
 function votingapi_generate_votes_form_submit($form, &$form_state) {
-  votingapi_generate_votes($form_state['values']['node_types'], $form_state['values']['vote_type'], $form_state['values']['kill_votes']);
-}
-
-/**
- * Utility function to generate votes.
- */
-function votingapi_generate_votes($node_types, $vote_type, $kill_votes = FALSE) {
-  module_load_include('inc', 'devel_generate');
-
-  if ($kill_votes) {
-    db_truncate('votingapi_vote');
-    db_truncate('votingapi_cache');
-  }
-
-  $uids = devel_get_users();
-  
-  $results = db_select('node', 'n')
-    ->fields('n', array('nid', 'created'))
-    ->condition('n.type', $node_types, 'IN')
-    ->execute();
-
-  foreach ($results as $node) {
-    _votingapi_cast_votes($node->nid, $node->created, $uids, $vote_type);
-  }
-}
-
-/**
- * Utility function to generate votes on a node by a set of users.
- */
-function _votingapi_cast_votes($nid, $timestamp, $uids, $style) {
-  $votes = array();
-  foreach ($uids as $uid) {
-    switch ($style) {
-      case 'five':
-        if (rand(0, 2)) {
-          $votes[] = array(
-            'uid' => $uid,
-            'content_id' => $nid,
-            'value_type' => 'percent',
-            'timestamp' => REQUEST_TIME - rand(0, REQUEST_TIME - $timestamp),
-            'value' => rand(0, 5) * 20,
-          );
-        }
-        break;
-      case 'flag':
-        if (rand(0, 1)) {
-          $votes[] = array(
-            'uid' => $uid,
-            'content_id' => $nid,
-            'value_type' => 'points',
-            'timestamp' => REQUEST_TIME - rand(0, REQUEST_TIME - $timestamp),
-            'value' => 1,
-          );
-        }
-        break;
-      case 'updown':
-        if (rand(0, 3)) {
-          $votes[] = array(
-            'uid' => $uid,
-            'content_id' => $nid,
-            'value_type' => 'points',
-            'timestamp' => REQUEST_TIME - rand(0, REQUEST_TIME - $timestamp),
-            'value' => rand(0, 1) ? 1 : -1,
-          );
-        }
-        break;
-    }
-  }
-  votingapi_set_votes($votes, array());
+  $options = array(
+    'types' => $form_state['values']['node_types'],
+    'kill' => $form_state['values']['kill_votes'],
+  );
+  require_once(drupal_get_path('module', 'votingapi') . '/votingapi.drush.inc');
+  votingapi_generate_votes('node', $form_state['values']['vote_type'], $options);
 }
