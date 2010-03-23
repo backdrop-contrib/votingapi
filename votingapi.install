@@ -50,14 +50,6 @@ function votingapi_schema() {
   return $schema;
 }
 
-function votingapi_install() {
-  drupal_install_schema('votingapi');
-}
-
-function votingapi_uninstall() {
-  drupal_uninstall_schema('votingapi');
-}
-
 /**
  * UTF8 update
  */
