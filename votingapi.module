@@ -16,7 +16,7 @@
  */
 function votingapi_menu() {
   $items = array();
-  $items['admin/settings/votingapi'] = array(
+  $items['admin/config/search/votingapi'] = array(
     'title' => 'Voting API',
     'description' => 'Global settings for the Voting API.',
     'page callback' => 'drupal_get_form',
@@ -28,7 +28,7 @@ function votingapi_menu() {
   );
 
   if (module_exists('devel_generate')) {
-    $items['admin/generate/votingapi'] = array(
+    $items['admin/config/development/generate/votingapi'] = array(
       'title' => 'Generate votes',
       'description' => 'Generate a given number of votes on site content. Optionally delete existing votes.',
       'page callback' => 'drupal_get_form',
@@ -308,7 +308,7 @@ function votingapi_delete_results($vote_results = array()) {
  */
 function votingapi_select_votes($criteria = array(), $limit = 0) {
   $anon_window = variable_get('votingapi_anonymous_window', 3600);
-  if (!empty($criteria['vote_source']) && $anon_window > 0) {
+  if (!empty($criteria['vote_source']) && $anon_window >= 0) {
     $criteria['timestamp'] = REQUEST_TIME - $anon_window;
   }
   $query = db_select('votingapi_vote')->fields('votingapi_vote');
