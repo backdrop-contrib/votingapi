@@ -18,7 +18,7 @@ function votingapi_menu() {
   $items = array();
   $items['admin/config/search/votingapi'] = array(
     'title' => 'Voting API',
-    'description' => 'Global settings for the Voting API.',
+    'description' => 'Configure sitewide settings for user-generated ratings and votes.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('votingapi_settings_form'),
     'access callback' => 'user_access',
