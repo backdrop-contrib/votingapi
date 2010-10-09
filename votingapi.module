@@ -514,8 +514,8 @@ function _votingapi_get_standard_results($entity_type, $entity_id) {
  * Retrieve the value of the first vote matching the criteria passed in.
  */
 function votingapi_select_single_vote_value($criteria = array()) {
-  foreach (votingapi_select_votes($criteria) as $vote) {
-    return $vote['value'];
+  if ($results = votingapi_select_votes($criteria, 1)) {
+     return $results[0]['value'];
   }
 }
 
@@ -523,8 +523,8 @@ function votingapi_select_single_vote_value($criteria = array()) {
  * Retrieve the value of the first result matching the criteria passed in.
  */
 function votingapi_select_single_result_value($criteria = array()) {
-  foreach (votingapi_select_results($criteria) as $result) {
-    return $result['value'];
+  if ($results = votingapi_select_results($criteria, 1)) {
+     return $results[0]['value'];
   }
 }
 
