@@ -14,7 +14,7 @@ class votingapi_views_handler_field_value extends views_handler_field_numeric {
 
   function option_definition() {
     $options = parent::option_definition();
-    $options['appearance'] = '';
+    $options['appearance'] = array('default' => '');
     return $options;
   }
 
