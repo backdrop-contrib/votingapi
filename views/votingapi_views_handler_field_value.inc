@@ -36,6 +36,10 @@ class votingapi_views_handler_field_value extends views_handler_field_numeric {
     }
   }
 
+  function element_type() {
+    return 'div';
+  } 
+
   function render($values) {
     $value = $values->{$this->field_alias};
     $function = $this->options['appearance'];
