@@ -14,4 +14,5 @@ files[] = tests/votingapi.test
 files[] = views/votingapi.views.inc
 files[] = views/votingapi.views_default.inc
 files[] = views/votingapi_views_handler_field_value.inc
+files[] = views/votingapi_views_handler_sort_nullable.inc
 files[] = views/votingapi_views_handler_relationship.inc
