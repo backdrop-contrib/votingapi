@@ -132,7 +132,7 @@ class votingapi_views_handler_relationship extends views_handler_relationship {
             'value' => $value,
             'numeric' => FALSE
           );
-          $alias .= '_'. $value;
+          $alias .= '_'. _votingapi_views_sql_safe_content_type($value);
         }
       }
     }
