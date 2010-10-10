@@ -27,10 +27,6 @@ function votingapi_views_handlers() {
         'parent' => 'views_handler_relationship',
         'path' => drupal_get_path('module', 'votingapi') . '/views',
       ),
-      'votingapi_views_handler_filter_nullable_numeric' => array(
-        'parent' => 'views_handler_filter_numeric',
-        'path' => drupal_get_path('module', 'votingapi') . '/views',
-      ),
       'votingapi_views_handler_sort_nullable' => array(
         'parent' => 'views_handler_sort',
         'path' => drupal_get_path('module', 'votingapi') . '/views',
