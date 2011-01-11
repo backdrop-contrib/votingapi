@@ -42,10 +42,14 @@ function votingapi_menu() {
 }
 
 /**
- * Implementation of hook_perm().
+ * Implements hook_permission().
  */
-function votingapi_perm() {
-  return array('administer voting api');
+function votingapi_permission() {
+  return array(
+      'administer voting api' => array(
+          'title' => t('Administer Voting API'),
+      ),
+  );
 }
 
 /**
