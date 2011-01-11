@@ -63,10 +63,10 @@ function votingapi_update_last_removed() {
  * Reduces confusion about 'content types' versus 'node types'.
  */
 function votingapi_update_7201() {
-  db_change_field('votingapi_vote', 'content_type', 'entity_type', array('type' => 'varchar', 'length' => 255));
+  db_change_field('votingapi_vote', 'content_type', 'entity_type', array('type' => 'varchar', 'length' => 64));
   db_change_field('votingapi_vote', 'content_id', 'entity_id', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
 
-  db_change_field('votingapi_cache', 'content_type', 'entity_type', array('type' => 'varchar', 'length' => 255));
+  db_change_field('votingapi_cache', 'content_type', 'entity_type', array('type' => 'varchar', 'length' => 64));
   db_change_field('votingapi_cache', 'content_id', 'entity_id', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
 
   return t('Updated VotingAPI table structure.');
