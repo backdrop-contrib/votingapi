@@ -138,6 +138,9 @@ function votingapi_set_votes(&$votes, $criteria = NULL) {
     foreach ($votes as $vote) {
       $tmp = votingapi_current_user_identifier();
       $tmp += $vote;
+      if (isset($tmp['value'])) {
+        unset($tmp['value']);
+      }
       votingapi_delete_votes(votingapi_select_votes($tmp));
     }
   }
