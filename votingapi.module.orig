@@ -189,34 +189,6 @@ function votingapi_current_user_identifier() {
 }
 
 /**
- * Implementation of hook_votingapi_storage_add_vote().
- */
-function votingapi_votingapi_storage_add_vote(&$vote) {
-  drupal_write_record('votingapi_vote', $vote);
-}
-
-/**
- * Implementation of hook_votingapi_storage_delete_votes().
- */
-function votingapi_votingapi_storage_delete_votes($votes, $vids) {
-  db_delete('votingapi_vote')->condition('vote_id', $vids, 'IN')->execute();
-}
-
-/**
- * Implementation of hook_votingapi_storage_select_votes().
- */
-function votingapi_votingapi_storage_select_votes($criteria, $limit) {
-  $query = db_select('votingapi_vote')->fields('votingapi_vote');
-  foreach ($criteria as $key => $value) {
-    $query->condition($key, $value, is_array($value) ? 'IN' : '=');
-  }
-  if (!empty($limit)) {
-    $query->range(0, $limit);
-  }
-  return $query->execute()->fetchAll(PDO::FETCH_ASSOC);
-}
-
-/**
  * Save a collection of votes to the database.
  *
  * This function does most of the heavy lifting for VotingAPI the main
@@ -247,10 +219,9 @@ function votingapi_add_votes(&$votes) {
   if (!empty($votes['entity_id'])) {
     $votes = array($votes);
   }
-  $function = variable_get('votingapi_storage_module', 'votingapi') . '_votingapi_storage_add_vote';
   foreach ($votes as $key => $vote) {
     _votingapi_prep_vote($vote);
-    $function($vote);
+    drupal_write_record('votingapi_vote', $vote);
     $votes[$key] = $vote;
   }
   module_invoke_all('votingapi_insert', $votes);
@@ -300,8 +271,7 @@ function votingapi_delete_votes($votes = array()) {
     foreach ($votes as $vote) {
       $vids[] = $vote['vote_id'];
     }
-    $function = variable_get('votingapi_storage_module', 'votingapi') . '_votingapi_storage_delete_votes';
-    $function($votes, $vids);
+    db_delete('votingapi_vote')->condition('vote_id', $vids, 'IN')->execute();
   }
 }
 
@@ -347,8 +317,14 @@ function votingapi_select_votes($criteria = array(), $limit = 0) {
   if (!empty($criteria['vote_source']) && $anon_window >= 0) {
     $criteria['timestamp'] = REQUEST_TIME - $anon_window;
   }
-  $function = variable_get('votingapi_storage_module', 'votingapi') . '_votingapi_storage_select_votes';
-  return $function($criteria, $limit);
+  $query = db_select('votingapi_vote')->fields('votingapi_vote');
+  foreach ($criteria as $key => $value) {
+    $query->condition($key, $value, is_array($value) ? 'IN' : '=');
+  }
+  if (!empty($limit)) {
+    $query->range(0, $limit);
+  }
+  return $query->execute()->fetchAll(PDO::FETCH_ASSOC);
 }
 
 /**
@@ -409,10 +385,9 @@ function votingapi_recalculate_results($entity_type, $entity_id, $force_calculat
       ->condition('entity_type', $entity_type)
       ->condition('entity_id', $entity_id)
       ->execute();
-
-    $function = variable_get('votingapi_storage_module', 'votingapi') . '_votingapi_storage_standard_results';
+      
     // Bulk query to pull the majority of the results we care about.
-    $cache = $function($entity_type, $entity_id);
+    $cache = _votingapi_get_standard_results($entity_type, $entity_id);
 
     // Give other modules a chance to alter the collection of votes.
     drupal_alter('votingapi_results', $cache, $entity_type, $entity_id);
@@ -510,7 +485,7 @@ function votingapi_metadata($reset = FALSE) {
 /**
  * Builds the default VotingAPI results for the three supported voting styles.
  */
-function votingapi_votingapi_storage_standard_results($entity_type, $entity_id) {
+function _votingapi_get_standard_results($entity_type, $entity_id) {
   $cache = array();
 
   $sql  = "SELECT v.value_type, v.tag, ";
