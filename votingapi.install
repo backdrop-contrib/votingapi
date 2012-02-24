@@ -70,3 +70,19 @@ function votingapi_update_7201() {
 
   return t('Updated VotingAPI table structure.');
 }
+
+
+/**
+ * Implements hook_uninstall().
+ */
+function votingapi_uninstall() {
+  // Delete variables created by voteapi module.
+  $variables = array(
+    'votingapi_last_cron',
+    'votingapi_anonymous_window',
+    'votingapi_calculation_schedule',
+  );
+  foreach ($variables as $variable) {
+    variable_del($variable);
+  }
+}
