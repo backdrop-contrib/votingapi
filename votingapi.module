@@ -343,9 +343,9 @@ function votingapi_delete_results($vote_results = array()) {
  *   An array of votes matching the criteria.
  */
 function votingapi_select_votes($criteria = array(), $limit = 0) {
-  $anon_window = variable_get('votingapi_anonymous_window', 3600);
+  $anon_window = variable_get('votingapi_anonymous_window', 86400);
   if (!empty($criteria['vote_source']) && $anon_window >= 0) {
-    $criteria['timestamp'] = REQUEST_TIME - $anon_window;
+    $criteria['timestamp'] > REQUEST_TIME - $anon_window;
   }
   $function = variable_get('votingapi_storage_module', 'votingapi') . '_votingapi_storage_select_votes';
   return $function($criteria, $limit);
