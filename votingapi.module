@@ -70,9 +70,8 @@ function votingapi_cron() {
   if (variable_get('votingapi_calculation_schedule', 'immediate') == 'cron') {
     $time = REQUEST_TIME;
     $last_cron = variable_get('votingapi_last_cron', 0);
-    $result = db_query('SELECT DISTINCT entity_type, entity_id FROM {votingapi_vote} WHERE timestamp > %d', $last_cron);
-
-    while ($content = db_fetch_object($result)) {
+    $result = db_query('SELECT DISTINCT entity_type, entity_id FROM {votingapi_vote} WHERE timestamp > :timestamp', array(':timestamp' => $last_cron));
+    foreach ($result as $content) {
       votingapi_recalculate_results($content->entity_type, $content->entity_id, TRUE);
     }
 
