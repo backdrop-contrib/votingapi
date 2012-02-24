@@ -35,7 +35,7 @@ class votingapi_views_handler_field_value extends views_handler_field_numeric {
     }
   }
 
-  function element_type() {
+  function element_type($none_supported = FALSE, $default_empty = FALSE) {
     return 'div';
   }
 
