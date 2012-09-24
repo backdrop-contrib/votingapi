@@ -56,6 +56,32 @@ function votingapi_update_last_removed() {
   return 6101;
 }
 
+/**
+ * Queue orphaned votes for deletion (nodes and comments)
+ */
+function votingapi_update_7202() {
+  $tables[] = 'votingapi_vote';
+  $tables[] = 'votingapi_cache';
+
+  $types[] = array('node', 'node', 'nid');
+  $types[] = array('comment', 'comment', 'cid');
+
+  $queue = DrupalQueue::get('VotingAPIOrphaned', TRUE);
+
+  foreach ($types as $w) {
+    list($type, $type_table, $type_key) = $w;
+    foreach ($tables as $table) {
+      $sql = "SELECT v.entity_type, v.entity_id FROM {{$table}} v
+              LEFT OUTER JOIN {{$type_table}} e ON v.entity_id=e.$type_key
+              WHERE v.entity_type='$type' AND e.$type_key IS NULL
+              GROUP BY v.entity_type, v.entity_id";
+      $result = db_query($sql);
+      foreach ($result as $row) {
+        $queue->createItem((array) $row);
+      }
+    }
+  }
+}
 
 /**
  * Renaming the 'content_type' and 'content_id' columns to entity_type and entity_id.
