@@ -57,6 +57,14 @@ function votingapi_update_last_removed() {
 }
 
 /**
+ * Fix default values for entity_type columns
+ */
+function votingapi_update_7203() {
+  db_change_field('votingapi_vote',  'entity_type', 'entity_type', array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'node'));
+  db_change_field('votingapi_cache', 'entity_type', 'entity_type', array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'node'));
+}
+
+/**
  * Queue orphaned votes for deletion (nodes and comments)
  */
 function votingapi_update_7202() {
