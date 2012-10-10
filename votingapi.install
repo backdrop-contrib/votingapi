@@ -78,6 +78,9 @@ function votingapi_update_7202() {
 
   foreach ($types as $w) {
     list($type, $type_table, $type_key) = $w;
+    if (!db_table_exists($type_table)) {
+      continue;
+    }
     foreach ($tables as $table) {
       $sql = "SELECT v.entity_type, v.entity_id FROM {{$table}} v
               LEFT OUTER JOIN {{$type_table}} e ON v.entity_id=e.$type_key
