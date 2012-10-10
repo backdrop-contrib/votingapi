@@ -616,7 +616,7 @@ function _votingapi_delete_cache_by_entity($entity_ids, $type) {
   foreach ($result as $row) {
     $votes[]['vote_cache_id'] = $row->vote_cache_id;
   }
-  votingapi_delete_results($ids);
+  votingapi_delete_results($votes);
 }
 
 /**
