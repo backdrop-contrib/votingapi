@@ -596,8 +596,9 @@ function _votingapi_prep_vote(&$vote) {
  */
 function votingapi_entity_delete($entity, $type) {
   $ids = entity_extract_ids($type, $entity);
-  _votingapi_delete_cache_by_entity($ids, $type);
-  _votingapi_delete_votes_by_entity($ids, $type);
+  $id = array($ids[0]);
+  _votingapi_delete_cache_by_entity($id, $type);
+  _votingapi_delete_votes_by_entity($id, $type);
 }
 
 /**
