@@ -273,24 +273,18 @@ function votingapi_views_data_alter(&$views_data) {
   // Add relationship handlers for both tables, for any base tables currently
   // available to Views.
 
-  $default_relationships = module_invoke_all('votingapi_relationships');
-
-  $default_relationships[] = array(
-    'description' => t('nodes'),
-    'entity_type' => 'node',
-    'base_table' => 'node',
-    'entity_id_column' => 'nid',
-    'pseudo_vote' => 'votingapi_vote',    // for legacy compatability w/RC1.
-    'pseudo_cache' => 'votingapi_cache',  // for legacy compatability w/RC1.
-  );
-  $default_relationships[] = array(
-    'description' => t('comments'),
-    'entity_type' => 'comment',
-    'base_table' => 'comment',
-    'entity_id_column' => 'cid',
-    'pseudo_vote' => 'votingapi_vote',    // for legacy compatability w/RC1.
-    'pseudo_cache' => 'votingapi_cache',  // for legacy compatability w/RC1.
-  );
+  //Get all entity types in the system and register as relationship.
+  $entity_types = entity_get_info();
+  foreach($entity_types as $key => $entity_type) {
+    $default_relationships[] = array(
+      'description' => $entity_type['label'],
+      'entity_type' => $key,
+      'base_table' => $entity_type['base table'],
+      'entity_id_column' => $entity_type['entity keys']['id'],
+      'pseudo_vote' => 'votingapi_vote',    // for legacy compatability w/RC1.
+      'pseudo_cache' => 'votingapi_cache',  // for legacy compatability w/RC1.
+    );
+  }
 
   foreach ($default_relationships as $data) {
     $pseudo = str_replace(array(' ','-','.'), '_', $data['entity_type'] . '_' . $data['entity_id_column']);
