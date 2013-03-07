@@ -136,8 +136,7 @@ function votingapi_set_votes(&$votes, $criteria = NULL) {
     // If the calling function didn't explicitly set criteria for vote deletion,
     // build up the delete queries here.
     foreach ($votes as $vote) {
-      $tmp = votingapi_current_user_identifier();
-      $tmp += $vote;
+      $tmp = $vote + votingapi_current_user_identifier();
       if (isset($tmp['value'])) {
         unset($tmp['value']);
       }
