@@ -132,9 +132,7 @@ function votingapi_update_7201() {
   // Recreate the indexes.
   foreach ($index as $table => $data) {
     foreach ($data as $index_name => $columns) {
-      if (db_index_exists($table, $index_name)) {
-        db_add_index($table, $index_name, $columns);
-      }
+      db_add_index($table, $index_name, $columns);
     }
   }
 
