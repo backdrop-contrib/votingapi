@@ -126,7 +126,7 @@ function _votingapi_cast_votes($etype, $eid, $timestamp = 0, $uids = array(), $s
           'entity_type' => $etype,
           'entity_id' => $eid,
           'value_type' => 'percent',
-          'timestamp' => REQUEST_TIME - rand(0, REQUEST_TIME - $timestamp),
+          'timestamp' => REQUEST_TIME - mt_rand(0, $timestamp),
           'value' => mt_rand(1, 5) * 20,
           'tag' => $tags[mt_rand(0, 30)],
         );
@@ -138,7 +138,7 @@ function _votingapi_cast_votes($etype, $eid, $timestamp = 0, $uids = array(), $s
             'entity_type' => $etype,
             'entity_id' => $eid,
             'value_type' => 'points',
-            'timestamp' => REQUEST_TIME - rand(0, REQUEST_TIME - $timestamp),
+            'timestamp' => REQUEST_TIME - mt_rand(0, $timestamp),
             'value' => rand(0, 1) ? 1 : -1,
           );
         }
