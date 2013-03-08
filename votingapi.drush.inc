@@ -80,7 +80,7 @@ function votingapi_generate_votes($entity_type = 'node', $vote_type = 'percent',
   module_load_include('inc', 'devel_generate');
   $options += array(
     'age' => 36000,
-    'types' => $roles = drush_get_option('types') ? explode(',', drush_get_option('types')) : array(),
+    'types' => array(),
     'kill' => FALSE,
   );
 
@@ -100,7 +100,7 @@ function votingapi_generate_votes($entity_type = 'node', $vote_type = 'percent',
 
   $query = db_select($entity_type, 'e')->fields('e', array($entity_id_column));
   if ($entity_type == 'node' && !empty($options['types'])) {
-    $query->condition('e.type', $node_types, 'IN');
+    $query->condition('e.type', $options['types'], 'IN');
   }
   $results = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
 
