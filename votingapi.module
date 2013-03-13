@@ -11,7 +11,7 @@
  */
 
 /**
- * Implementation of hook_menu().
+ * Implements of hook_menu().
  */
 function votingapi_menu() {
   $items = array();
@@ -52,7 +52,7 @@ function votingapi_permission() {
 }
 
 /**
- * Implementation of hook_views_api().
+ * Implements of hook_views_api().
  */
 function votingapi_views_api() {
   return array(
@@ -62,7 +62,7 @@ function votingapi_views_api() {
 }
 
 /**
- * Implementation of hook_cron().
+ * Implements of hook_cron().
  *
  * Allows db-intensive recalculations to be deferred until cron-time.
  */
@@ -189,21 +189,21 @@ function votingapi_current_user_identifier() {
 }
 
 /**
- * Implementation of hook_votingapi_storage_add_vote().
+ * Implements of hook_votingapi_storage_add_vote().
  */
 function votingapi_votingapi_storage_add_vote(&$vote) {
   drupal_write_record('votingapi_vote', $vote);
 }
 
 /**
- * Implementation of hook_votingapi_storage_delete_votes().
+ * Implements of hook_votingapi_storage_delete_votes().
  */
 function votingapi_votingapi_storage_delete_votes($votes, $vids) {
   db_delete('votingapi_vote')->condition('vote_id', $vids, 'IN')->execute();
 }
 
 /**
- * Implementation of hook_votingapi_storage_select_votes().
+ * Implements of hook_votingapi_storage_select_votes().
  */
 function votingapi_votingapi_storage_select_votes($criteria, $limit) {
   $query = db_select('votingapi_vote')->fields('votingapi_vote');
@@ -551,7 +551,7 @@ function votingapi_votingapi_storage_standard_results($entity_type, $entity_id) 
  */
 function votingapi_select_single_vote_value($criteria = array()) {
   if ($results = votingapi_select_votes($criteria, 1)) {
-     return $results[0]['value'];
+    return $results[0]['value'];
   }
 }
 
@@ -560,7 +560,7 @@ function votingapi_select_single_vote_value($criteria = array()) {
  */
 function votingapi_select_single_result_value($criteria = array()) {
   if ($results = votingapi_select_results($criteria, 1)) {
-     return $results[0]['value'];
+    return $results[0]['value'];
   }
 }
 

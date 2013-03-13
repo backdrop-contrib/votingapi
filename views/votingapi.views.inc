@@ -13,7 +13,7 @@
 
 
 /**
- * Implementation of hook_views_handlers().
+ * Implements of hook_views_handlers().
  */
 function votingapi_views_handlers() {
   return array(
@@ -36,7 +36,7 @@ function votingapi_views_handlers() {
 
 
 /**
- * Implementation of hook_views_data().
+ * Implements of hook_views_data().
  */
 function votingapi_views_data() {
   // Basic table information.
@@ -287,10 +287,10 @@ function votingapi_views_data_alter(&$views_data) {
   }
 
   foreach ($default_relationships as $data) {
-    $pseudo = str_replace(array(' ','-','.'), '_', $data['entity_type'] . '_' . $data['entity_id_column']);
-    $pseudo_vote = empty($data['pseudo_vote']) ? 'vapi_'. $pseudo : $data['pseudo_vote'];
-    $pseudo_cache = empty($data['pseudo_cache']) ? 'vapic_'. $pseudo : $data['pseudo_cache'];
-    
+    $pseudo = str_replace(array(' ', '-', '.'), '_', $data['entity_type'] . '_' . $data['entity_id_column']);
+    $pseudo_vote = empty($data['pseudo_vote']) ? 'vapi_' . $pseudo : $data['pseudo_vote'];
+    $pseudo_cache = empty($data['pseudo_cache']) ? 'vapic_' . $pseudo : $data['pseudo_cache'];
+
     $views_data[$data['base_table']][$pseudo_vote]['relationship'] = array(
       'title' => 'Votes',
       'help' => 'Votes cast by users on ' . $data['description'] . '.',
@@ -327,12 +327,12 @@ function votingapi_views_data_alter(&$views_data) {
 
 
 function _votingapi_views_sql_safe_entity_type($string) {
-  return str_replace(array(' ','-','.'), '_', $string);
+  return str_replace(array(' ', '-', '.'), '_', $string);
 }
 
 
 /**
- * Implementation of hook_views_analyze().
+ * Implements of hook_views_analyze().
  *
  * Warns admins if a VotingAPI relationship has been defined, but filters on the
  * relationship haven't been set.

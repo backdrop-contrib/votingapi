@@ -7,7 +7,7 @@
  */
 
 /**
- * Implementation of hook_drush_help().
+ * Implements of hook_drush_help().
  */
 function votingapi_drush_help($section) {
   switch ($section) {
@@ -21,7 +21,7 @@ function votingapi_drush_help($section) {
 }
 
 /**
- * Implementation of hook_drush_command().
+ * Implements of hook_drush_command().
  */
 function votingapi_drush_command() {
   $items['generate-votes'] = array(
