@@ -148,6 +148,7 @@ function votingapi_uninstall() {
   $variables = array(
     'votingapi_last_cron',
     'votingapi_anonymous_window',
+    'votingapi_user_window',
     'votingapi_calculation_schedule',
   );
   foreach ($variables as $variable) {
