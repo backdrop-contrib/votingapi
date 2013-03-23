@@ -93,48 +93,6 @@ function hook_votingapi_metadata_alter(&$data) {
   );
 }
 
-
-/**
- * Return metadata used to build Views relationships on voting data.
- *
- * VotingAPI can store votes on any entity in the Drupal database: its content_type
- * and content_id columns can be used to store "node"/1, "comment"/2, and so
- * on. This hook is used to tell VotingAPI what Views base table the content_type
- * field corresponds to, and what field in that base table contains the value in
- * votingapi's content_id table.
- *
- * @return
- *   An array of records containing 'description', 'content_type', 'base_table',
- *   and 'content_id_column' entries.
- */
-function hook_votingapi_relationships() {
-  $relationships[] = array(
-    // 'description' is used to construct the field description in the Views UI.
-    'description' => t('users'),
-
-    // 'content_type' contain the value that your module stores in the voting
-    // api 'content_type' column. 'node', 'comment', etc.
-    'content_type' => 'user',
-
-    // 'base_table' contain the name of the Views base table that stores the
-    // data your votes apply to.
-    'base_table' => 'user',
-
-    // 'content_id_column' contains the name of the views field that represents
-    // your base_table's primary key. This column will be joined against the
-    // voting api 'content_id' column.
-    'content_id_column' => 'uid',
-
-    // VotingAPI constructs pseudo-tables so that multiple relationships can
-    // point to the same base table (normal and translation-based votes nodes
-    // for example. These two columns allow you to override the names of the
-    // pseudo-tables. You probably don't need to change this part unless you're
-    // nedjo.
-    'pseudo_vote' => 'votingapi_vote_special',
-    'pseudo_cache' => 'votingapi_cache_special',
-  );
-}
-
 /**
  * Returns callback functions and descriptions to format a VotingAPI Views field.
  *
