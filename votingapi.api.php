@@ -188,6 +188,28 @@ function hook_votingapi_storage_select_votes($criteria, $limit) {
 }
 
 /**
+ * Allows to act on votes before being inserted.
+ *
+ * @param $votes
+ *  An array of votes, each with the following structure:
+ *  $vote['entity_type']  (Optional, defaults to 'node')
+ *  $vote['entity_id']    (Required)
+ *  $vote['value_type']    (Optional, defaults to 'percent')
+ *  $vote['value']         (Required)
+ *  $vote['tag']           (Optional, defaults to 'vote')
+ *  $vote['uid']           (Optional, defaults to current user)
+ *  $vote['vote_source']   (Optional, defaults to current IP)
+ *  $vote['timestamp']     (Optional, defaults to REQUEST_TIME)
+ */
+function hook_votingapi_preset_votes(&$votes) {
+  foreach ($votes as $vote) {
+    if ($vote['tag'] == 'recommend') {
+      // Do something if the 'recommend' vote is being inserted.
+    }
+  }
+}
+
+/**
  * TODO
  *
  */
