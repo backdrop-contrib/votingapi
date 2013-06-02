@@ -147,9 +147,6 @@ function hook_votingapi_storage_delete_votes($votes, $vids) {
 /**
  * Select invidual votes from the database
  *
-/**
- * Select individual votes from the database.
- *
  * @param $criteria
  *   A keyed array used to build the select query. Keys can contain
  *   a single value or an array of values to be matched.
