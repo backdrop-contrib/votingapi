@@ -60,7 +60,7 @@ function _votingapi_cast_votes($etype, $eid, $timestamp = 0, $uids = array(), $s
           'value_type' => 'percent',
           'timestamp' => REQUEST_TIME - mt_rand(0, $timestamp),
           'value' => mt_rand(1, 5) * 20,
-          'tag' => $tags[mt_rand(0, 30)],
+          'tag' => $tags[mt_rand(0, 20)],
         );
         break;
       case 'points':

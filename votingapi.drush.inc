@@ -2,11 +2,9 @@
 
 /**
  * @file
- *  Generate votingapi votes, recalculate results for existing votes, or flush
- *  VotingAPI data entirely.
+ *  Drush commands to generate votingapi votes, recalculate results
+ *  for existing votes, or flush VotingAPI data entirely.
  */
-
-require_once drupal_get_path('module', 'votingapi') . '/votingapi.devel.inc';
 
 /**
  * Implements of hook_drush_help().
@@ -59,7 +57,6 @@ function votingapi_drush_command() {
   return $items;
 }
 
-
 /**
  * Command callback. Generate a number of votes.
  */
@@ -70,6 +67,7 @@ function drush_votingapi_generate_votes($entity_type = 'node', $vote_type = 'per
     'types' => drush_get_option('types'),
   );
 
+  require_once(drupal_get_path('module', 'votingapi') . '/votingapi.devel.inc');
   votingapi_generate_votes($entity_type, $vote_type, $options);
 
   drush_log(t('Generating @vtype votes for @etype entities.', array('@vtype' => $vote_type, '@etype' => $entity_type)), 'success');
@@ -99,7 +97,6 @@ function drush_votingapi_recalculate($entity_type = 'node', $entity_id = NULL) {
 
   drush_log($message, 'success');
 }
-
 
 /**
  * Command callback. Flush votes and results.
