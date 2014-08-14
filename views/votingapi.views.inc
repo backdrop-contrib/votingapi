@@ -275,8 +275,9 @@ function votingapi_views_data_alter(&$views_data) {
 
   //Get all entity types in the system and register as relationship.
   $entity_types = entity_get_info();
+  $default_relationships = array();
   foreach($entity_types as $key => $entity_type) {
-    if (isset($entiy_type['base table'])) {
+    if (isset($entity_type['base table'])) {
       $default_relationships[] = array(
         'description' => $entity_type['label'],
         'entity_type' => $key,
