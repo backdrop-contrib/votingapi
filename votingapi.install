@@ -57,15 +57,15 @@ function votingapi_update_last_removed() {
 }
 
 /**
- * Move book settings from variables to config.
+ * Move Voting API settings from variables to config.
  */
-function book_update_1201() {
+function votingapi_update_1201() {
   // Migrate variables to config.
   $config = config('votingapi.settings');
   $config->set('votingapi_last_cron', update_variable_get('votingapi_last_cron', 0));
   $config->set('votingapi_anonymous_window', update_variable_get('votingapi_anonymous_window', 86400));
   $config->set('votingapi_user_window', update_variable_get('votingapi_user_window', -1));
-  $config->set('votingapi_calculate_time_schedule', update_variable_get('votingapi_calculate_time_schedule', 'immediate'));
+  $config->set('votingapi_calculation_schedule', update_variable_get('votingapi_calculation_schedule', 'immediate'));
   $config->set('votingapi_storage_module', update_variable_get('votingapi_storage_module', 'votingapi'));
   $config->set('votingapi_cron_orphaned_max', update_variable_get('votingapi_cron_orphaned_max', 50));
   $config->save();

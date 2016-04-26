@@ -56,9 +56,9 @@ function votingapi_settings_form($form_state) {
  */
 function votingapi_settings_form_submit($form, &$form_state) {
   $config = config('votingapi.settings');
-  $config->set('anonymous_window', $form_state['values']['anonymous_window']);
-  $config->set('user_window', $form_state['values']['user_window']);
-  $config->set('calculation_schedule', $form_state['values']['calculation_schedule']);
+  $config->set('votingapi_anonymous_window', $form_state['values']['anonymous_window']);
+  $config->set('votingapi_user_window', $form_state['values']['user_window']);
+  $config->set('votingapi_calculation_schedule', $form_state['values']['calculation_schedule']);
   $config->save();
   backdrop_set_message(t('The configuration options have been saved.'));
 }
