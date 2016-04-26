@@ -283,8 +283,8 @@ function votingapi_views_data_alter(&$views_data) {
         'entity_type' => $key,
         'base_table' => $entity_type['base table'],
         'entity_id_column' => $entity_type['entity keys']['id'],
-        'pseudo_vote' => 'votingapi_vote',    // for legacy compatability w/RC1.
-        'pseudo_cache' => 'votingapi_cache',  // for legacy compatability w/RC1.
+        'pseudo_vote' => 'votingapi_vote',    // for legacy compatibility w/RC1.
+        'pseudo_cache' => 'votingapi_cache',  // for legacy compatibility w/RC1.
       );
     }
   }

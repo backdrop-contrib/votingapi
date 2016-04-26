@@ -17,7 +17,7 @@ function votingapi_menu() {
   $items = array();
   $items['admin/config/search/votingapi'] = array(
     'title' => 'Voting API',
-    'description' => 'Configure sitewide settings for user-generated ratings and votes.',
+    'description' => 'Configure site-wide settings for user-generated ratings and votes.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('votingapi_settings_form'),
     'access callback' => 'user_access',
@@ -67,15 +67,15 @@ function votingapi_views_api() {
  * Allows db-intensive recalculations to be deferred until cron-time.
  */
 function votingapi_cron() {
-  if (variable_get('votingapi_calculation_schedule', 'immediate') == 'cron') {
+  if (config_get('votingapi.settings', 'votingapi_calculation_schedule') == 'cron') {
     $time = REQUEST_TIME;
-    $last_cron = variable_get('votingapi_last_cron', 0);
+    $last_cron = config_get('votingapi.settings', 'votingapi_last_cron');
     $result = db_query('SELECT DISTINCT entity_type, entity_id FROM {votingapi_vote} WHERE timestamp > :timestamp', array(':timestamp' => $last_cron));
     foreach ($result as $content) {
       votingapi_recalculate_results($content->entity_type, $content->entity_id, TRUE);
     }
 
-    variable_set('votingapi_last_cron', $time);
+    config_set('votingapi.settings', 'votingapi_last_cron', $time);
   }
 
   _votingapi_cron_delete_orphaned();
@@ -119,7 +119,7 @@ function votingapi_cron() {
  *      GREATER THAN the set value will be selected.)
  * @return
  *   An array of vote result records affected by the vote. The values are
- *   contained in a nested array keyed thusly:
+ *   contained in a nested array keyed like this:
  *   $value = $results[$entity_type][$entity_id][$tag][$value_type][$function]
  *
  * @see votingapi_add_votes()
@@ -169,7 +169,7 @@ function votingapi_set_votes(&$votes, $criteria = NULL) {
     $touched[$vote['entity_type']][$vote['entity_id']] = TRUE;
   }
 
-  if (variable_get('votingapi_calculation_schedule', 'immediate') != 'cron') {
+  if (config_get('votingapi.settings', 'votingapi_calculation_schedule') != 'cron') {
     foreach ($touched as $type => $ids) {
       foreach ($ids as $id => $bool) {
         $touched[$type][$id] = votingapi_recalculate_results($type, $id);
@@ -202,8 +202,8 @@ function votingapi_votingapi_storage_add_vote(&$vote) {
 /**
  * Implements of hook_votingapi_storage_delete_votes().
  */
-function votingapi_votingapi_storage_delete_votes($votes, $vids) {
-  db_delete('votingapi_vote')->condition('vote_id', $vids, 'IN')->execute();
+function votingapi_votingapi_storage_delete_votes($votes, $vote_ids) {
+  db_delete('votingapi_vote')->condition('vote_id', $vote_ids, 'IN')->execute();
 }
 
 /**
@@ -229,9 +229,9 @@ function votingapi_votingapi_storage_select_votes($criteria, $limit) {
  * Save a collection of votes to the database.
  *
  * This function does most of the heavy lifting for VotingAPI the main
- * votingapi_set_votes() function, but does NOT automatically triger re-tallying
+ * votingapi_set_votes() function, but does NOT automatically trigger re-tallying
  * of results. As such, it's useful for modules that must insert their votes in
- * separate batches without triggering unecessary recalculation.
+ * separate batches without triggering unnecessary recalculation.
  *
  * Remember that any module calling this function implicitly assumes responsibility
  * for calling votingapi_recalculate_results() when all votes have been inserted.
@@ -256,7 +256,7 @@ function votingapi_add_votes(&$votes) {
   if (!empty($votes['entity_id'])) {
     $votes = array($votes);
   }
-  $function = variable_get('votingapi_storage_module', 'votingapi') . '_votingapi_storage_add_vote';
+  $function = config_get('votingapi.settings', 'votingapi_storage_module') . '_votingapi_storage_add_vote';
   foreach ($votes as $key => $vote) {
     _votingapi_prep_vote($vote);
     $function($vote);
@@ -305,12 +305,12 @@ function votingapi_add_results($vote_results = array()) {
 function votingapi_delete_votes($votes = array()) {
   if (!empty($votes)) {
     module_invoke_all('votingapi_delete', $votes);
-    $vids = array();
+    $vote_ids = array();
     foreach ($votes as $vote) {
-      $vids[] = $vote['vote_id'];
+      $vote_ids[] = $vote['vote_id'];
     }
-    $function = variable_get('votingapi_storage_module', 'votingapi') . '_votingapi_storage_delete_votes';
-    $function($votes, $vids);
+    $function = config_get('votingapi.settings', 'votingapi_storage_module') . '_votingapi_storage_delete_votes';
+    $function($votes, $vote_ids);
   }
 }
 
@@ -323,11 +323,11 @@ function votingapi_delete_votes($votes = array()) {
  */
 function votingapi_delete_results($vote_results = array()) {
   if (!empty($vote_results)) {
-    $vids = array();
+    $vote_ids = array();
     foreach ($vote_results as $vote) {
-      $vids[] = $vote['vote_cache_id'];
+      $vote_ids[] = $vote['vote_cache_id'];
     }
-    db_delete('votingapi_cache')->condition('vote_cache_id', $vids, 'IN')->execute();
+    db_delete('votingapi_cache')->condition('vote_cache_id', $vote_ids, 'IN')->execute();
   }
 }
 
@@ -355,15 +355,15 @@ function votingapi_select_votes($criteria = array(), $limit = 0) {
   $window = -1;
   if (empty($criteria['uid']) || $criteria['uid'] == 0) {
     if (!empty($criteria['vote_source'])) {
-      $window = variable_get('votingapi_anonymous_window', 86400);
+      $window = config_get('votingapi.settings', 'votingapi_anonymous_window');
     }
   } else {
-    $window = variable_get('votingapi_user_window', -1);
+    $window = config_get('votingapi.settings', 'votingapi_user_window');
   }
   if ($window >= 0) {
     $criteria['timestamp'] = REQUEST_TIME - $window;
   }
-  $function = variable_get('votingapi_storage_module', 'votingapi') . '_votingapi_storage_select_votes';
+  $function = config_get('votingapi.settings', 'votingapi_storage_module') . '_votingapi_storage_select_votes';
   return $function($criteria, $limit);
 }
 
@@ -411,7 +411,7 @@ function votingapi_select_results($criteria = array(), $limit = 0) {
  * @param $entity_id
  *   The key ID of the content being rated.
  * @return
- *   An array of the resulting votingapi_cache records, structured thusly:
+ *   An array of the resulting votingapi_cache records, structured like this:
  *   $value = $results[$ag][$value_type][$function]
  *
  * @see votingapi_set_votes()
@@ -420,13 +420,13 @@ function votingapi_recalculate_results($entity_type, $entity_id, $force_calculat
   // if we're operating in cron mode, and the 'force recalculation' flag is NOT set,
   // bail out. The cron run will pick up the results.
 
-  if (variable_get('votingapi_calculation_schedule', 'immediate') != 'cron' || $force_calculation == TRUE) {
-    $query = db_delete('votingapi_cache')
+  if (config_get('votingapi.settings', 'votingapi_calculation_schedule') != 'cron' || $force_calculation == TRUE) {
+    db_delete('votingapi_cache')
       ->condition('entity_type', $entity_type)
       ->condition('entity_id', $entity_id)
       ->execute();
 
-    $function = variable_get('votingapi_storage_module', 'votingapi') . '_votingapi_storage_standard_results';
+    $function = config_get('votingapi.settings', 'votingapi_storage_module') . '_votingapi_storage_standard_results';
     // Bulk query to pull the majority of the results we care about.
     $cache = $function($entity_type, $entity_id);
 
@@ -456,6 +456,7 @@ function votingapi_recalculate_results($entity_type, $entity_id, $force_calculat
 
     return $cached;
   }
+  return [];
 }
 
 
@@ -564,6 +565,7 @@ function votingapi_select_single_vote_value($criteria = array()) {
   if ($results = votingapi_select_votes($criteria, 1)) {
     return $results[0]['value'];
   }
+  return NULL;
 }
 
 /**
@@ -573,6 +575,7 @@ function votingapi_select_single_result_value($criteria = array()) {
   if ($results = votingapi_select_results($criteria, 1)) {
     return $results[0]['value'];
   }
+  return NULL;
 }
 
 /**
@@ -654,11 +657,19 @@ function _votingapi_delete_votes_by_entity($entity_ids, $type) {
  */
 function _votingapi_cron_delete_orphaned() {
   $queue = DrupalQueue::get('VotingAPIOrphaned');
-  $limit = variable_get('votingapi_cron_orphaned_max', 50);
+  $limit = config_get('votingapi.settings', 'votingapi_cron_orphaned_max');
   $done = 0;
   while (($item = $queue->claimItem()) && $done++ < $limit) {
     _votingapi_delete_cache_by_entity(array($item->data['entity_id']), $item->data['entity_type']);
     _votingapi_delete_votes_by_entity(array($item->data['entity_id']), $item->data['entity_type']);
     $queue->deleteItem($item);
   }
+}
+
+function votingapi_config_info() {
+  $prefixes['votingapi.settings'] = array(
+    'label' => t('Settings'),
+    'group' => t('Voting API'),
+  );
+  return $prefixes;
 }

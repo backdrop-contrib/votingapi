@@ -159,7 +159,7 @@ function hook_votingapi_storage_delete_votes($votes, $vids) {
  *   $criteria['vote_source']
  *   $criteria['timestamp']   If this is set, records with timestamps
  *      GREATER THAN the set value will be selected. Defaults to
- *      REQUEST_TIME - variable_get('votingapi_anonymous_window', 3600); if
+ *      REQUEST_TIME - config_get('votingapi.settings", 'votingapi_anonymous_window'); if
  *      the anonymous window is above zero.
  * @param $limit
  *   An integer specifying the maximum number of votes to return. 0 means

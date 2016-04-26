@@ -11,27 +11,29 @@
 function votingapi_settings_form($form_state) {
   $period = array(0 => t('Immediately')) + drupal_map_assoc(array(300, 900, 1800, 3600, 10800, 21600, 32400, 43200, 86400, 172800, 345600, 604800), 'format_interval') + array(-1 => t('Never'));
 
-  $form['votingapi_anonymous_window'] = array(
+  $config = config('votingapi.settings');
+
+  $form['anonymous_window'] = array(
     '#type' => 'select',
     '#title' => t('Anonymous vote rollover'),
     '#description' => t('The amount of time that must pass before two anonymous votes from the same computer are considered unique. Setting this to \'never\' will eliminate most double-voting, but will make it impossible for multiple anonymous on the same computer (like internet cafe customers) from casting votes.'),
-    '#default_value' => variable_get('votingapi_anonymous_window', 86400),
+    '#default_value' => $config->get('votingapi_anonymous_window'),
     '#options' => $period
   );
 
-  $form['votingapi_user_window'] = array(
+  $form['user_window'] = array(
     '#type' => 'select',
     '#title' => t('Registered user vote rollover'),
     '#description' => t('The amount of time that must pass before two registered user votes from the same user ID are considered unique. Setting this to \'never\' will eliminate most double-voting for registered users.'),
-    '#default_value' => variable_get('votingapi_user_window', -1),
+    '#default_value' => $config->get('votingapi_user_window'),
     '#options' => $period
   );
 
-  $form['votingapi_calculation_schedule'] = array(
+  $form['calculation_schedule'] = array(
     '#type' => 'radios',
     '#title' => t('Vote tallying'),
     '#description' => t('On high-traffic sites, administrators can use this setting to postpone the calculation of vote results.'),
-    '#default_value' => variable_get('votingapi_calculation_schedule', 'immediate'),
+    '#default_value' => $config->get('votingapi_calculation_schedule'),
     '#options' => array(
       'immediate' => t('Tally results whenever a vote is cast'),
       'cron' => t('Tally results at cron-time'),
@@ -39,7 +41,26 @@ function votingapi_settings_form($form_state) {
     ),
   );
 
-  return system_settings_form($form);
+  // Add a submit button
+  $form['actions']['#type'] = 'actions';
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save configuration'),
+  );
+
+  return $form;
+}
+
+/**
+ * Submit handler for votingapi_settings_form().
+ */
+function votingapi_settings_form_submit($form, &$form_state) {
+  $config = config('votingapi.settings');
+  $config->set('anonymous_window', $form_state['values']['anonymous_window']);
+  $config->set('user_window', $form_state['values']['user_window']);
+  $config->set('calculation_schedule', $form_state['values']['calculation_schedule']);
+  $config->save();
+  backdrop_set_message(t('The configuration options have been saved.'));
 }
 
 /**

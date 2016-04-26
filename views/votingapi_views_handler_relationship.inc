@@ -18,7 +18,7 @@
  *   utilize this base table, it won't be very effective.
  * - relationship table: The actual table this relationship operates against.
  *   This is analogous to using a 'table' override.
- * - relationship field: The actual field this relationsihp operates against.
+ * - relationship field: The actual field this relationship operates against.
  *   This is analogous to using a 'real field' override.
  * - label: The default label to provide for this relationship, which is
  *   shown in parentheses next to any field/sort/filter/argument that uses

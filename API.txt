@@ -12,7 +12,7 @@ Create/Retrieve/Update/Delete operations for voting data. The simplest modules o
 Every time a user casts a vote, VotingAPI calculates the results and caches them for you. You can use the default calculations (like average, total, etc) or implement your own custom tallying functions.
 
 3) Display
-VotingAPI integrates with Views.module, allowing you to slice and dice your site's content based on user consensus. While some custom modules may need to implement thier own Views integration to provide customized displays, the vast majority can use the built-in system without any additional work.
+VotingAPI integrates with Views.module, allowing you to slice and dice your site's content based on user consensus. While some custom modules may need to implement their own Views integration to provide customized displays, the vast majority can use the built-in system without any additional work.
 
 How Data Is Stored
 ==================
