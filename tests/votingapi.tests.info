@@ -1,3 +1,5 @@
+[VotingAPITestCase]
 name = Voting API
 description = Voting API
-group = Voting API Tests
+group = Voting API
+file = votingapi.test
