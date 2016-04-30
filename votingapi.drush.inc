@@ -30,7 +30,7 @@ function votingapi_drush_command() {
       'entity_type' => 'The type of entity to generate votes for.',
       'vote_type' => 'The type of votes to generate, defaults to \'percent\'.',
     ),
-    'drupal dependencies' => array('devel_generate'),
+    'backdrop dependencies' => array('devel_generate'),
     'options' => array(
       'kill' => 'Specify \'kill\' to delete all existing votes before generating new ones.',
       'age' => 'The maximum age, in seconds, of each vote.',
@@ -40,7 +40,7 @@ function votingapi_drush_command() {
   );
   $items['votingapi-recalculate'] = array(
     'description' => 'Regenerates voting results from raw vote data.',
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // Various D7 code assumes we have a uid.
+    'bootstrap' => DRUSH_BOOTSTRAP_BACKDROP_LOGIN, // Various D7 code assumes we have a uid.
     'arguments' => array(
       'entity_type' => 'The type of entity to recalculate vote results for.',
     ),
@@ -48,7 +48,7 @@ function votingapi_drush_command() {
   );
   $items['votingapi-flush'] = array(
     'description' => 'Deletes all existing voting data.',
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // Various D7 code assumes we have a uid.
+    'bootstrap' => DRUSH_BOOTSTRAP_BACKDROP_LOGIN, // Various D7 code assumes we have a uid.
     'arguments' => array(
       'entity_type' => 'The type of entity whose voting data should be flushed.',
     ),
@@ -67,7 +67,7 @@ function drush_votingapi_generate_votes($entity_type = 'node', $vote_type = 'per
     'types' => drush_get_option('types'),
   );
 
-  require_once(drupal_get_path('module', 'votingapi') . '/votingapi.devel.inc');
+  require_once(backdrop_get_path('module', 'votingapi') . '/votingapi.devel.inc');
   votingapi_generate_votes($entity_type, $vote_type, $options);
 
   drush_log(t('Generating @vtype votes for @etype entities.', array('@vtype' => $vote_type, '@etype' => $entity_type)), 'success');

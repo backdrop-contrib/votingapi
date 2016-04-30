@@ -21,7 +21,7 @@ function votingapi_generate_votes($entity_type = 'node', $vote_type = 'percent',
     db_truncate('votingapi_cache');
   }
 
-  if (($schema = drupal_get_schema($entity_type)) && ($entity_id_column = array_shift($schema['primary key']))) {
+  if (($schema = backdrop_get_schema($entity_type)) && ($entity_id_column = array_shift($schema['primary key']))) {
     // oh look we found a schema yay
   }
   else {

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * A generalized voting API for Drupal.
+ * A generalized voting API for Backdrop.
  *
  * Maintains and provides an interface for a shared bin of vote and rating
  * data. Modules can cast votes with arbitrary properties and VotingAPI will
@@ -18,7 +18,7 @@ function votingapi_menu() {
   $items['admin/config/search/votingapi'] = array(
     'title' => 'Voting API',
     'description' => 'Configure site-wide settings for user-generated ratings and votes.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('votingapi_settings_form'),
     'access callback' => 'user_access',
     'access arguments' => array('administer voting api'),
@@ -30,7 +30,7 @@ function votingapi_menu() {
     $items['admin/config/development/generate/votingapi'] = array(
       'title' => 'Generate votes',
       'description' => 'Generate a given number of votes on site content. Optionally delete existing votes.',
-      'page callback' => 'drupal_get_form',
+      'page callback' => 'backdrop_get_form',
       'page arguments' => array('votingapi_generate_votes_form'),
       'access arguments' => array('administer voting api'),
       'file' => 'votingapi.admin.inc',
@@ -57,7 +57,7 @@ function votingapi_permission() {
 function votingapi_views_api() {
   return array(
     'api' => 3,
-    'path' => drupal_get_path('module', 'votingapi') . '/views',
+    'path' => backdrop_get_path('module', 'votingapi') . '/views',
   );
 }
 
@@ -133,8 +133,8 @@ function votingapi_set_votes(&$votes, $criteria = NULL) {
 
   // Allow other modules to modify or unset/remove votes.
   // module_invoke_all does not allow passing variables by reference
-  // http://api.drupal.org/api/drupal/includes%21module.inc/function/module_invoke_all/7#comment-35778
-  drupal_alter(array('votingapi_preset_votes'), $votes);
+  // http://api.backdrop.org/api/backdrop/includes%21module.inc/function/module_invoke_all/7#comment-35778
+  backdrop_alter(array('votingapi_preset_votes'), $votes);
   // Handle clearing out old votes if they exist.
   if (!isset($criteria)) {
     // If the calling function didn't explicitly set criteria for vote deletion,
@@ -196,7 +196,7 @@ function votingapi_current_user_identifier() {
  * Implements of hook_votingapi_storage_add_vote().
  */
 function votingapi_votingapi_storage_add_vote(&$vote) {
-  drupal_write_record('votingapi_vote', $vote);
+  backdrop_write_record('votingapi_vote', $vote);
 }
 
 /**
@@ -291,7 +291,7 @@ function votingapi_add_results($vote_results = array()) {
 
   foreach ($vote_results as $vote_result) {
     $vote_result['timestamp'] = REQUEST_TIME;
-    drupal_write_record('votingapi_cache', $vote_result);
+    backdrop_write_record('votingapi_cache', $vote_result);
   }
 }
 
@@ -431,7 +431,7 @@ function votingapi_recalculate_results($entity_type, $entity_id, $force_calculat
     $cache = $function($entity_type, $entity_id);
 
     // Give other modules a chance to alter the collection of votes.
-    drupal_alter('votingapi_results', $cache, $entity_type, $entity_id);
+    backdrop_alter('votingapi_results', $cache, $entity_type, $entity_id);
 
     // Now, do the caching. Woo.
     $cached = array();
@@ -518,7 +518,7 @@ function votingapi_metadata($reset = FALSE) {
       ),
     );
 
-    drupal_alter('votingapi_metadata', $data);
+    backdrop_alter('votingapi_metadata', $data);
   }
 
   return $data;
@@ -656,7 +656,7 @@ function _votingapi_delete_votes_by_entity($entity_ids, $type) {
  * Delete votes and cache entries for a number of entities in the queue.
  */
 function _votingapi_cron_delete_orphaned() {
-  $queue = DrupalQueue::get('VotingAPIOrphaned');
+  $queue = BackdropQueue::get('VotingAPIOrphaned');
   $limit = config_get('votingapi.settings', 'votingapi_cron_orphaned_max');
   $done = 0;
   while (($item = $queue->claimItem()) && $done++ < $limit) {

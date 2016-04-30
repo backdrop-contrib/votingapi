@@ -5,31 +5,25 @@
  * Test file for VotingAPI module.
  */
 
-class VotingAPITestCase extends DrupalWebTestCase {
+class VotingAPITestCase extends BackdropWebTestCase {
 
+  private $node;
   private $nid;
 
   function setUp() {
     parent::setUp('votingapi');
     // Create a new page
-    $node = entity_create('node', array ('type' => 'page'));
-    $node->title = '';
-    $node->teaser = t('Teaser text');
-    $node->body = t('Here is the body of the page');
-    $node->uid = 1;
-    $node->type = 'page';
-    $node->status = 1;
-    $node->promote = 0;
-    $this->nid = $node->id();
-    $node->title = t('Node @id', array('@id' => $this->nid));
-    $node->save();
-  }
-
-  function tearDown() {
-    if ($this->nid) {
-      node_delete($this->nid);
-    }
-    parent::tearDown();
+    $this->nid = '9999';
+    $this->node = $this->backdropCreateNode(array(
+      'type' => 'page',
+    ));
+    $this->node->title = '';
+    $this->node->teaser = t('Teaser text');
+    $this->node->uid = 1;
+    $this->node->status = 1;
+    $this->node->promote = 0;
+    $this->node->title = t('Node @id', array('@id' => $this->nid));
+    $this->node->save();
   }
 
   /**
@@ -84,9 +78,9 @@ class VotingAPITestCase extends DrupalWebTestCase {
    */
   function testAddMultipleVotes() {
     $users = array();
-    $users[] = $this->drupalCreateUser();
-    $users[] = $this->drupalCreateUser();
-    $users[] = $this->drupalCreateUser();
+    $users[] = $this->backdropCreateUser();
+    $users[] = $this->backdropCreateUser();
+    $users[] = $this->backdropCreateUser();
     $values = array(72, 13, 27);
     $votes = array();
     try {
