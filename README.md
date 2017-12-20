@@ -8,11 +8,11 @@ API for other module developers to build their voting and rating systems on.
 Installation
 ------------
 
-- Install this module using the official Backdrop CMS instructions at
-  https://backdropcms.org/guide/modules
+- Install this module using the official 
+  [Backdrop CMS instructions](https://backdropcms.org/guide/modules)
 
-- Visit the configuration page under Administration > Configuration >
-  Search and metadata > Voting API (admin/config/search/votingapi) and enter
+- Visit the configuration page under **Administration > Configuration >
+  Search and metadata > Voting API** (admin/config/search/votingapi) and enter
   the required information.
 
 Documentation
@@ -30,13 +30,13 @@ https://github.com/backdrop-contrib/votingapi/issues
 Current Maintainers
 -------------------
 
-- Philip White (https://github.com/whiteph/)
+- [Laryn Kragt Bakker](https://github.com/laryn) - [CEDC.org](https://cedc.org)
 
 Credits
 -------
 
-- Ported to Backdrop CMS by Philip White (https://github.com/whiteph).
-- Originally written for Drupal by Jeff Eaton (https://github.com/eaton).
+- Ported to Backdrop CMS by [Philip White](https://github.com/whiteph).
+- Originally written for Drupal by [Jeff Eaton](https://github.com/eaton).
 
 License
 -------
