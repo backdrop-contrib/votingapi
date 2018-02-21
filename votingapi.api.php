@@ -101,10 +101,10 @@ function hook_votingapi_metadata_alter(&$data) {
  * responsibility for the full voting cycle: the votingapi_set_vote() function
  * recalculates automatically.
  *
- * @param $field
+ * @param object $field
  *   A Views field object. This can be used to expose formatters only for tags,
  *   vote values, aggregate functions, etc.
- * @return
+ * @return array
  *   An array of key-value pairs, in which each key is a callback function and
  *   each value is a human-readable description of the formatter.
  *
@@ -147,7 +147,7 @@ function hook_votingapi_storage_delete_votes($votes, $vids) {
 /**
  * Select invidual votes from the database
  *
- * @param $criteria
+ * @param array $criteria
  *   A keyed array used to build the select query. Keys can contain
  *   a single value or an array of values to be matched.
  *   $criteria['vote_id']       (If this is set, all other keys are skipped)
@@ -161,10 +161,10 @@ function hook_votingapi_storage_delete_votes($votes, $vids) {
  *      GREATER THAN the set value will be selected. Defaults to
  *      REQUEST_TIME - variable_get('votingapi_anonymous_window', 3600); if
  *      the anonymous window is above zero.
- * @param $limit
+ * @param int $limit
  *   An integer specifying the maximum number of votes to return. 0 means
  *   unlimited and is the default.
- * @return
+ * @return array
  *   An array of votes matching the criteria.
  */
 function hook_votingapi_storage_select_votes($criteria, $limit) {
