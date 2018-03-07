@@ -4,6 +4,8 @@ package = Voting
 core = 7.x
 configure = admin/config/search/votingapi
 
+files[] = votingapi.migrate.inc
+
 files[] = tests/votingapi.test
 
 files[] = views/votingapi_views_handler_field_value.inc
