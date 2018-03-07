@@ -4,7 +4,6 @@
  * @file
  * Migration support for voting api.
  */
-
 class MigrateDestinationVotingApiVote extends MigrateDestination {
 
   protected $importedIds = array();
@@ -170,8 +169,7 @@ class MigrateDestinationVotingApiVote extends MigrateDestination {
     if (method_exists($migration, 'complete')) {
       try {
         $migration->complete($entity, $source_row);
-      }
-      catch (Exception $e) {
+      } catch (Exception $e) {
         // If we catch any errors here, save the messages without letting
         // the exception prevent the saving of the question.
         $migration->saveMessage($e->getMessage());
