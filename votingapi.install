@@ -274,6 +274,26 @@ function votingapi_update_7201() {
   return t('Updated VotingAPI table structure.');
 }
 
+/* Implements hook_update_N().
+ *
+ * Update the structure of data storage.
+ */
+function votingapi_update_7205() {
+  $query = db_select('votingapi_vote', 'v');
+  $query->fields('v', array('vote_source', 'vote_id'));
+  $results = $query->execute()->fetchAll();
+  if (!empty($results)) {
+    foreach ($results as $result) {
+      if (!empty($result) && !empty($result->vote_source)) {
+        $data = hash('sha256', serialize($result->vote_source));
+        $query = db_update('votingapi_vote');
+        $query->fields(array('vote_source' => $data));
+        $query->condition('vote_id', $result->vote_id);
+        $query->execute();
+      }
+    }
+  }
+}
 
 /**
  * Implements hook_uninstall().
