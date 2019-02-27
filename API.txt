@@ -88,11 +88,9 @@ function mymodule_votingapi_results_alter(&$results, $entity_type, $entity_id) {
   $sql .= "WHERE v.entity_type = '%s' AND v.entity_id = %d AND v.value_type = 'percent' ";
   $sql .= "GROUP BY v.tag";
 
-  $results = db_query($sql, $entity_type, $entity_id);
-
   // VotingAPI wants the data in the following format:
   // $cache[$tag][$value_type][$math_function] = $value;
-  while ($result = db_fetch_array($results)) {
+  while ($result = db_query($sql, $entity_type, $entity_id)->fetchAssoc()) {
     $cache[$result['tag']]['percent']['standard_deviation'] = $result['standard_deviation'];
   }
 }
