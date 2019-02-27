@@ -681,7 +681,13 @@ function _votingapi_prep_vote(&$vote) {
  */
 function votingapi_entity_delete($entity, $type) {
   $ids = entity_extract_ids($type, $entity);
-  $id = array($ids[0]);
+  // We will use "Primary/Revision ID of the entity" only.
+  if (count($ids) > 1) {
+    $id = array($ids[0], $ids[1]);
+  }
+  else {
+    $id = array($ids[0]);
+  }
   _votingapi_delete_cache_by_entity($id, $type);
   _votingapi_delete_votes_by_entity($id, $type);
 }
