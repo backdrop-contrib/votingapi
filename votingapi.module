@@ -8,40 +8,7 @@
  * total them automatically. Support for basic anonymous voting by
  * IP address hash, multi-criteria voting, arbitrary aggregation functions, etc.
  *
- * /**
- * Implementation of hook_help().
  */
-function votingapi_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#votingapi':
-      $output = '';
-      $text = 'module helps developers who want to use a standardized API';
-      $text .= ' and schema for storing, retrieving, and tabulating votes for';
-      $text .= ' Drupal content. Note that this module does NOT directly';
-      $text .= ' expose any voting mechanisms to end users. It is a framework';
-      $text .= ' designed to make life easier for other developers, and to';
-      $text .= ' standardize voting data for consumption by other modules';
-      $text .= ' (like Views). For more information, see the online';
-      $text .= ' documentation for the ';
-      $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The <a href="@votingapi">VotingAPI</a> ' . $text . ' <a href="@doco">VotingAPI module</a>.',
-          array(
-            '@votingapi' => 'http://drupal.org/project/votingapi',
-            '@doco' => 'https://www.drupal.org/node/68851',
-          )) . '</p>';
-      $output .= '<h3>' . t('Uses') . '</h3>';
-      $output .= '<dl>';
-      $output .= '<dt>' . t('General') . '</dt>';
-      $output .= '<dd>' . t('VotingAPI is used to allow module developers to focus on their ideas (say, providing a "rate this thread" widget at the bottom of each forum post) without worrying about the grunt work of storing votes, preventing ballot-stuffing, calculating the results, and so on.') . '</dd>';
-      $output .= '<dt>' . t('Basic Concepts and Features ') . '</dt>';
-      $output .= '<dd>' . t('VotingAPI does four key jobs for module developers: ') . '</dd>';
-      $output .= '<dd>' . t('1. CRUD: Create/Retrieve/Update/Delete operations for voting data. ') . '</dd>';
-      $output .= '<dd>' . t('2. Calculation: Every time a user casts a vote, VotingAPI calculates the results and caches them for you.  ') . '</dd>';
-      $output .= '<dd>' . t('3. Workflow: By integrating with Actions.module, VotingAPI can trigger workflow steps (like promoting a node to the front page, hiding a comment thathas been flagged as spam, or emailing an administrator) when votes are cast and results are tallied.  ') . '</dd>';
-      $output .= '<dd>' . t('4. Display: VotingAPI integrates with Views.module, allowing you to slice and dice the content of your site based on user consensus.  ') . '</dd>';
-      return $output;
-  }
-}
 
 /**
  * Implements hook_config_info().
