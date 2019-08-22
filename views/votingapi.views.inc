@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Provide views data for votingapi.module.

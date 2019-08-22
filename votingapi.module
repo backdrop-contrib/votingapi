@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * A generalized voting API for Backdrop.
@@ -11,7 +10,29 @@
  */
 
 /**
- * Implements of hook_menu().
+ * Implements hook_config_info().
+ */
+function votingapi_config_info() {
+  $prefixes['votingapi.settings'] = array(
+    'label' => t('Settings'),
+    'group' => t('Voting API'),
+  );
+  return $prefixes;
+}
+
+/**
+ * Implements hook_autoload_info().
+ */
+function votingapi_autoload_info() {
+  return array(
+    'votingapi_views_handler_field_value' => 'views/votingapi_views_handler_field_value.inc',
+    'votingapi_views_handler_relationship' => 'views/votingapi_views_handler_relationship.inc',
+    'votingapi_views_handler_sort_nullable' => 'views/votingapi_views_handler_sort_nullable.inc',
+  );
+}
+
+/**
+ * Implements hook_menu().
  */
 function votingapi_menu() {
   $items = array();
@@ -45,14 +66,14 @@ function votingapi_menu() {
  */
 function votingapi_permission() {
   return array(
-      'administer voting api' => array(
-          'title' => t('Administer Voting API'),
-      ),
+    'administer voting api' => array(
+      'title' => t('Administer Voting API'),
+    ),
   );
 }
 
 /**
- * Implements of hook_views_api().
+ * Implements hook_views_api().
  */
 function votingapi_views_api() {
   return array(
@@ -62,7 +83,7 @@ function votingapi_views_api() {
 }
 
 /**
- * Implements of hook_cron().
+ * Implements hook_cron().
  *
  * Allows db-intensive recalculations to be deferred until cron-time.
  */
@@ -193,21 +214,21 @@ function votingapi_current_user_identifier() {
 }
 
 /**
- * Implements of hook_votingapi_storage_add_vote().
+ * Implements hook_votingapi_storage_add_vote().
  */
 function votingapi_votingapi_storage_add_vote(&$vote) {
   backdrop_write_record('votingapi_vote', $vote);
 }
 
 /**
- * Implements of hook_votingapi_storage_delete_votes().
+ * Implements hook_votingapi_storage_delete_votes().
  */
 function votingapi_votingapi_storage_delete_votes($votes, $vote_ids) {
   db_delete('votingapi_vote')->condition('vote_id', $vote_ids, 'IN')->execute();
 }
 
 /**
- * Implements of hook_votingapi_storage_select_votes().
+ * Implements hook_votingapi_storage_select_votes().
  */
 function votingapi_votingapi_storage_select_votes($criteria, $limit) {
   $query = db_select('votingapi_vote')->fields('votingapi_vote');
@@ -664,12 +685,4 @@ function _votingapi_cron_delete_orphaned() {
     _votingapi_delete_votes_by_entity(array($item->data['entity_id']), $item->data['entity_type']);
     $queue->deleteItem($item);
   }
-}
-
-function votingapi_config_info() {
-  $prefixes['votingapi.settings'] = array(
-    'label' => t('Settings'),
-    'group' => t('Voting API'),
-  );
-  return $prefixes;
 }
