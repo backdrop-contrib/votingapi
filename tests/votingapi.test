@@ -35,15 +35,14 @@ class VotingAPITestCase extends BackdropWebTestCase {
     // entity_id and value.
     $vote = array(
       'entity_id' => $this->nid,
-      'value' => $value
+      'value' => $value,
     );
     try {
       $result = votingapi_add_votes($vote);
       // Test that the result has its fields set appropriately.
       $this->validateVote('testMinimalAdd()', $result, $this->nid, array($value));
       $this->assertTrue(REQUEST_TIME - $result[0]['timestamp'] < 2, t('The timestamp should be less than 2 seconds ago.'));
-    }
-    catch (Exception $e) {
+    } catch (Exception $e) {
       $this->fail(t('Could not add a vote with only entity_id and value.'));
       return;
     }
@@ -55,16 +54,17 @@ class VotingAPITestCase extends BackdropWebTestCase {
   function testAddVote() {
     global $user;
     $value = '7';
-    $vote = array('entity_id' => $this->nid,
+    $vote = array(
+      'entity_id' => $this->nid,
       'value' => $value,
-      'entity_type' => 'node');
+      'entity_type' => 'node',
+    );
     try {
       $result = votingapi_add_votes($vote);
       // Test that the result has its fields set appropriately.
       $this->validateVote("testAddVote()", $result, $this->nid, $value, 'node', $user->uid);
       $this->assertTrue(REQUEST_TIME - $result[0]['timestamp'] < 2, t('The timestamp should be less than 2 seconds ago.'));
-    }
-    catch (Exception $e) {
+    } catch (Exception $e) {
       $this->fail('The votingapi_add_votes threw an error during the "votingapi_add_votes" call.');
       return;
     }
@@ -105,10 +105,10 @@ class VotingAPITestCase extends BackdropWebTestCase {
   }
 
   function validateVote($prefix, $vote, $entity_id, $value, $entity_type = 'node',
-    $uid = NULL, $value_type = 'percent', $tag = 'vote', $vote_source = NULL) {
+                        $uid = NULL, $value_type = 'percent', $tag = 'vote', $vote_source = NULL) {
     global $user;
     if ($vote_source == NULL) {
-      $vote_source = ip_address();
+      $vote_source = hash('sha256', serialize(ip_address()));
     }
     $prefix_array = array('@prefix' => $prefix);
     for ($index = 0; $index < count($vote); $index++) {
@@ -117,7 +117,7 @@ class VotingAPITestCase extends BackdropWebTestCase {
       $this->assertTrue($vote[$index]['entity_type'] == $entity_type, t('@prefix: entity_type should match, default = "node".', $prefix_array));
       $this->assertTrue($vote[$index]['value_type'] == $value_type, t('@prefix: value_type should match, default= "percent".', $prefix_array));
       $this->assertTrue($vote[$index]['tag'] == $tag, t('@prefix: tag should match, default =  "vote".', $prefix_array));
-      $this->assertTrue($vote[$index]['vote_source'] == $vote_source, t('@prefix: vote_source should match, default = ip address.', $prefix_array));
+      $this->assertTrue($vote[$index]['vote_source'] == $vote_source, t('@prefix: vote_source should match, default = ip address hash.', $prefix_array));
       if ($uid != NULL) {
         $this->assertTrue($vote[0]['uid'] == $uid, t('@prefix: uid should match.', $prefix_array));
       }
@@ -132,28 +132,8 @@ class VotingAPITestCase extends BackdropWebTestCase {
         $sum += $value;
         $count++;
       }
-      $average = $sum / $count;
-      $prefix_array = array('@prefix' => $prefix);
-      foreach ($votes as $summary) {
-        if ($summary['function'] == 'count') {
-          $summary_desc = 'count summary';
-          $prefix_array['@summary_desc'] = $summary_desc;
-          $this->assertTrue($summary['value'] == $count,
-            t('@prefix: (@summary_desc) value should match the number of values.', $prefix_array));
-        }
-        elseif ($summary['function'] == 'average') {
-          $summary_desc = 'average summary';
-          $prefix_array['@summary_desc'] = $summary_desc;
-          $this->assertTrue($summary['value'] == $average,
-            t('@prefix: (@summary_desc) value should match the average of values', $prefix_array));
-        }
-        else {
-          $prefix_array['@summary'] = $summary['function'];
-          $prefix_array['@summary_desc'] = $summary['function'] . ' summary';
-          $this->assertFalse(TRUE, t('@prefix: Unknown summary type @summary.', $prefix_array));
-        }
-        $this->assertTrue($summary['entity_type'] == $entity_type,
-          t('@prefix: (@summary_desc) entity_type should match, default = "node"', $prefix_array));
+      $this->assertTrue($summary['entity_type'] == $entity_type,
+        t('@prefix: (@summary_desc) entity_type should match, default = "node"', $prefix_array));
       $this->assertTrue($summary['entity_id'] == $entity_id,
         t('@prefix: (@summary_desc) entity_id should match', $prefix_array));
       $this->assertTrue($summary['value_type'] == $value_type,

@@ -8,14 +8,48 @@
 function votingapi_schema() {
   $schema['votingapi_vote'] = array(
     'fields' => array(
-      'vote_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'entity_type' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'node'),
-      'entity_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'vote_id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'entity_type' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => 'node',
+      ),
+      'entity_id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'value' => array('type' => 'float', 'not null' => TRUE, 'default' => 0),
-      'value_type' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'percent'),
-      'tag' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'vote'),
-      'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'value_type' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => 'percent',
+      ),
+      'tag' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => 'vote',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'timestamp' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'vote_source' => array('type' => 'varchar', 'length' => 255),
     ),
     'primary key' => array('vote_id'),
@@ -23,27 +57,82 @@ function votingapi_schema() {
       'content_uid' => array('entity_type', 'entity_id', 'uid'),
       'content_uid_2' => array('entity_type', 'uid'),
       'content_source' => array('entity_type', 'entity_id', 'vote_source'),
-      'content_value_tag' => array('entity_type', 'entity_id', 'value_type', 'tag'),
+      'content_value_tag' => array(
+        'entity_type',
+        'entity_id',
+        'value_type',
+        'tag',
+      ),
     ),
   );
   $schema['votingapi_cache'] = array(
     'fields' => array(
-      'vote_cache_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'entity_type' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'node'),
-      'entity_id' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'vote_cache_id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'entity_type' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => 'node',
+      ),
+      'entity_id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'value' => array('type' => 'float', 'not null' => TRUE, 'default' => 0),
-      'value_type' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'percent'),
-      'tag' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => 'vote'),
-      'function' => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => ''),
-      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'value_type' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => 'percent',
+      ),
+      'tag' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => 'vote',
+      ),
+      'function' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'timestamp' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
     ),
     'primary key' => array('vote_cache_id'),
     'indexes' => array(
       'content' => array('entity_type', 'entity_id'),
       'content_function' => array('entity_type', 'entity_id', 'function'),
-      'content_tag_func' => array('entity_type', 'entity_id', 'tag', 'function'),
-      'content_vtype_tag' => array('entity_type', 'entity_id', 'value_type', 'tag'),
-      'content_vtype_tag_func' => array('entity_type', 'entity_id', 'value_type', 'tag', 'function'),
+      'content_tag_func' => array(
+        'entity_type',
+        'entity_id',
+        'tag',
+        'function',
+      ),
+      'content_vtype_tag' => array(
+        'entity_type',
+        'entity_id',
+        'value_type',
+        'tag',
+      ),
+      'content_vtype_tag_func' => array(
+        'entity_type',
+        'entity_id',
+        'value_type',
+        'tag',
+        'function',
+      ),
     ),
   );
   return $schema;
@@ -56,7 +145,8 @@ function votingapi_update_last_removed() {
   return 7203;
 }
 
-/**
+/* Implements hook_update_N().
+ *
  * Move Voting API settings from variables to config.
  */
 function votingapi_update_1201() {
@@ -79,4 +169,24 @@ function votingapi_update_1201() {
   update_variable_del('votingapi_cron_orphaned_max');
 }
 
-
+/* Implements hook_update_N().
+ *
+ * Update the structure of data storage.
+ * Duplicates votingapi_update_7205 from the Drupal module.
+ */
+function votingapi_update_1202() {
+  $query = db_select('votingapi_vote', 'v');
+  $query->fields('v', array('vote_source', 'vote_id'));
+  $results = $query->execute()->fetchAll();
+  if (!empty($results)) {
+    foreach ($results as $result) {
+      if (!empty($result) && !empty($result->vote_source)) {
+        $data = hash('sha256', serialize($result->vote_source));
+        $query = db_update('votingapi_vote');
+        $query->fields(array('vote_source' => $data));
+        $query->condition('vote_id', $result->vote_id);
+        $query->execute();
+      }
+    }
+  }
+}
