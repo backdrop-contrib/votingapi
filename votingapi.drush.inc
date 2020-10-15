@@ -40,7 +40,6 @@ function votingapi_drush_command() {
   );
   $items['votingapi-recalculate'] = array(
     'description' => 'Regenerates voting results from raw vote data.',
-    'bootstrap' => DRUSH_BOOTSTRAP_BACKDROP_LOGIN, 
     // Various code assumes we have a uid.
     'arguments' => array(
       'entity_type' => 'The type of entity to recalculate vote results for.',
@@ -49,7 +48,6 @@ function votingapi_drush_command() {
   );
   $items['votingapi-flush'] = array(
     'description' => 'Deletes all existing voting data.',
-    'bootstrap' => DRUSH_BOOTSTRAP_BACKDROP_LOGIN,
     // Various code assumes we have a uid.
     'arguments' => array(
       'entity_type' => 'The type of entity whose voting data should be flushed.',
