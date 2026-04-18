@@ -217,3 +217,74 @@ function hook_votingapi_preset_votes(&$votes) {
 function hook_votingapi_storage_standard_results($entity_id, $entity) {
   // TODO
 }
+
+/**
+ * React to votes being inserted into the VotingAPI system.
+ *
+ * This hook is called after votes are stored in the database, allowing 
+ * other modules to take action based on new votes. Modules may use this 
+ * hook to trigger notifications, update statistics, or perform other tasks.
+ *
+ * @param array $votes
+ *   An array of vote objects that were inserted. Each vote object contains:
+ *   - entity_type: The type of entity being voted on (e.g., 'node', 'comment').
+ *   - entity_id: The ID of the entity being voted on.
+ *   - value_type: The type of value recorded (e.g., 'points', 'percentage').
+ *   - value: The actual vote value.
+ *   - tag: An optional string to categorize votes (e.g., 'likes', 'ratings').
+ *   - timestamp: The UNIX timestamp of when the vote was cast.
+ */
+function hook_votingapi_insert($votes) {
+  // Example: Log new votes.
+  watchdog('votingapi', 'New votes inserted: @count', ['@count' => count($votes)]);
+}
+
+/**
+ * React to votes being deleted from the VotingAPI system.
+ *
+ * This hook is triggered when votes are removed from the database. Modules
+ * can use this to clean up related data, adjust rankings, or log deletions.
+ *
+ * @param array $votes
+ *   An array of vote objects that were deleted. Each vote object contains:
+ *   - entity_type: The type of entity the vote was associated with.
+ *   - entity_id: The ID of the entity the vote was associated with.
+ *   - value_type: The type of value that was recorded.
+ *   - value: The actual vote value.
+ *   - tag: An optional string to categorize votes.
+ *   - timestamp: The UNIX timestamp of when the vote was originally cast.
+ */
+function hook_votingapi_delete($votes) {
+  // Example: Log deleted votes.
+  watchdog('votingapi', 'Votes deleted: @count', ['@count' => count($votes)]);
+}
+
+/**
+ * Alter or extend vote results retrieved from VotingAPI.
+ *
+ * This hook allows modules to modify or enhance cached voting results 
+ * before they are returned. Modules may adjust scores, apply custom 
+ * calculations, or add additional metadata.
+ *
+ * @param array &$cached
+ *   An associative array of cached voting results, keyed by vote tag.
+ *   Each tag entry contains:
+ *   - count: The number of votes.
+ *   - value: The computed result (e.g., average rating, sum of votes).
+ *   - scale: The scale of the vote values (e.g., 1-5 for a star rating).
+ *
+ * @param string $entity_type
+ *   The type of entity being voted on (e.g., 'node', 'comment').
+ *
+ * @param int $entity_id
+ *   The ID of the entity being voted on.
+ */
+function hook_votingapi_results(&$cached, $entity_type, $entity_id) {
+  // Example: Normalize results to a 10-point scale.
+  foreach ($cached as &$result) {
+    if (!empty($result['value']) && !empty($result['scale'])) {
+      $result['value'] = ($result['value'] / $result['scale']) * 10;
+      $result['scale'] = 10;
+    }
+  }
+}
