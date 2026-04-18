@@ -8,7 +8,7 @@ API for other module developers to build their voting and rating systems on.
 Installation
 ------------
 
-- Install this module using the official 
+- Install this module using the official
   [Backdrop CMS instructions](https://backdropcms.org/guide/modules)
 
 - Visit the configuration page under **Administration > Configuration >
@@ -18,19 +18,17 @@ Installation
 Documentation
 -------------
 
-Additional documentation is located in the Wiki:
-https://github.com/backdrop-contrib/votingapi/wiki/Documentation
+Additional documentation is located in [the Wiki](https://github.com/backdrop-contrib/votingapi/wiki/Documentation).
 
 Issues
 ------
 
-Bugs and Feature requests should be reported in the Issue Queue:
-https://github.com/backdrop-contrib/votingapi/issues
+Bugs and Feature requests should be reported in [the Issue Queue](https://github.com/backdrop-contrib/votingapi/issues).
 
 Current Maintainers
 -------------------
 
-- [Laryn Kragt Bakker](https://github.com/laryn) - [CEDC.org](https://cedc.org)
+- [Laryn Kragt Bakker](https://github.com/laryn)
 
 Credits
 -------
