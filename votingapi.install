@@ -5,6 +5,9 @@
  * Installation file for VotingAPI module.
  */
 
+/**
+ * Implements hook_schema().
+ */
 function votingapi_schema() {
   $schema['votingapi_vote'] = array(
     'fields' => array(
@@ -25,7 +28,11 @@ function votingapi_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      'value' => array('type' => 'float', 'not null' => TRUE, 'default' => 0),
+      'value' => array(
+        'type' => 'float',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'value_type' => array(
         'type' => 'varchar',
         'length' => 64,
@@ -84,7 +91,11 @@ function votingapi_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      'value' => array('type' => 'float', 'not null' => TRUE, 'default' => 0),
+      'value' => array(
+        'type' => 'float',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'value_type' => array(
         'type' => 'varchar',
         'length' => 64,
@@ -145,8 +156,8 @@ function votingapi_update_last_removed() {
   return 7203;
 }
 
-/* Implements hook_update_N().
- *
+/**
+ * Implements hook_update_N().
  * Move Voting API settings from variables to config.
  */
 function votingapi_update_1201() {
@@ -169,8 +180,7 @@ function votingapi_update_1201() {
   update_variable_del('votingapi_cron_orphaned_max');
 }
 
-/* Implements hook_update_N().
- *
+/**
  * Update the structure of data storage.
  * Duplicates votingapi_update_7205 from the Drupal module.
  */
@@ -191,8 +201,8 @@ function votingapi_update_1202() {
   }
 }
 
-/* Implements hook_update_N().
- *
+/**
+ * Implements hook_update_N().
  * Move votingapi_last_cron from config to state.
  */
 function votingapi_update_1203() {

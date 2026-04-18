@@ -148,7 +148,7 @@ function votingapi_cron() {
  *   ones.
  *   $criteria['vote_id']     (If this is set, all other keys are skipped)
  *   $criteria['entity_type']
- *   $criteria['entity_type']
+ *   $criteria['entity_id']
  *   $criteria['value_type']
  *   $criteria['tag']
  *   $criteria['uid']
@@ -426,6 +426,7 @@ function votingapi_select_votes($criteria = array(), $limit = 0) {
  *   $criteria['vote_cache_id']     (If this is set, all other keys are skipped)
  *   $criteria['entity_id']
  *   $criteria['entity_type']
+ *   $criteria['value']
  *   $criteria['value_type']
  *   $criteria['tag']
  *   $criteria['function']
