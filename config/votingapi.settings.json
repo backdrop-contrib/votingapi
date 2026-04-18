@@ -1,6 +1,5 @@
 {
   "_config_name": "votingapi.settings",
-  "votingapi_last_cron": 0,
   "votingapi_anonymous_window": 86400,
   "votingapi_user_window": -1,
   "votingapi_calculation_schedule": "immediate",

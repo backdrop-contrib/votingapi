@@ -107,13 +107,13 @@ function votingapi_views_api() {
 function votingapi_cron() {
   if (config_get('votingapi.settings', 'votingapi_calculation_schedule') == 'cron') {
     $time = REQUEST_TIME;
-    $last_cron = config_get('votingapi.settings', 'votingapi_last_cron');
+    $last_cron = state_get('votingapi_last_cron', 0);
     $result = db_query('SELECT DISTINCT entity_type, entity_id FROM {votingapi_vote} WHERE timestamp > :timestamp', array(':timestamp' => $last_cron));
     foreach ($result as $content) {
       votingapi_recalculate_results($content->entity_type, $content->entity_id, TRUE);
     }
 
-    config_set('votingapi.settings', 'votingapi_last_cron', $time);
+    state_set('votingapi_last_cron', $time);
   }
 
   _votingapi_cron_delete_orphaned();

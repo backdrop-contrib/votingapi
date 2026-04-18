@@ -190,3 +190,17 @@ function votingapi_update_1202() {
     }
   }
 }
+
+/* Implements hook_update_N().
+ *
+ * Move votingapi_last_cron from config to state.
+ */
+function votingapi_update_1203() {
+  $config = config('votingapi.settings');
+  $last_cron = $config->get('votingapi_last_cron');
+  if ($last_cron !== NULL) {
+    state_set('votingapi_last_cron', $last_cron);
+    $config->clear('votingapi_last_cron');
+    $config->save();
+  }
+}
